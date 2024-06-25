@@ -10,14 +10,14 @@ import * as process from 'node:process';
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService<ConfigType>) => {
-        const postgresService = configService.get<PostgresConfig>('postgres');
+        const postgresConfig = configService.get<PostgresConfig>('postgres');
         return {
           type: 'postgres',
-          host: postgresService.host,
-          port: +postgresService.port,
-          username: postgresService.user,
-          password: postgresService.password,
-          database: postgresService.dbName,
+          host: postgresConfig.host,
+          port: +postgresConfig.port,
+          username: postgresConfig.user,
+          password: postgresConfig.password,
+          database: postgresConfig.dbName,
           entities: [
             path.join(
               process.cwd(),
@@ -35,7 +35,7 @@ import * as process from 'node:process';
               'src',
               'database',
               'entities',
-              '*.entity.js',
+              '*.js',
             ),
           ],
           synchronize: false,
