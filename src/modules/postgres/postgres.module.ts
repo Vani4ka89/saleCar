@@ -34,11 +34,12 @@ import * as process from 'node:process';
               'dist',
               'src',
               'database',
-              'entities',
+              'migrations',
               '*.js',
             ),
           ],
           synchronize: false,
+          migrationsRun: true,
         };
       },
       inject: [ConfigService],

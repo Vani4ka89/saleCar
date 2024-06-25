@@ -1,7 +1,7 @@
 import { DataSource } from 'typeorm';
-import getConfig from 'src/configs/configuration';
-import path from 'node:path';
-import process from 'node:process';
+import getConfig from './src/configs/configuration';
+import * as path from 'node:path';
+import * as process from 'node:process';
 
 import { config } from 'dotenv';
 config({ path: '.env' });
@@ -17,6 +17,8 @@ export default new DataSource({
   entities: [
     path.join(process.cwd(), 'src', 'database', 'entities', '*.entity.ts'),
   ],
-  migrations: [path.join(process.cwd(), 'src', 'database', 'entities', '*.ts')],
+  migrations: [
+    path.join(process.cwd(), 'src', 'database', 'migrations', '*.ts'),
+  ],
   synchronize: false,
 });
