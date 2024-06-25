@@ -11,13 +11,13 @@ services:
       - ./postgres.db:/var/lib/postgresql/data
     restart: on-failure
 
-#  redis:
-#    image: redis:alpine
-#    ports:
-#      - '${REDIS_PORT}:6379'
-#    command: >
-#      --requirepass '${REDIS_PASSWORD}'
-#    restart: on-failure
+  redis:
+    image: redis:alpine
+    ports:
+      - '${REDIS_PORT}:6379'
+    command: >
+      --requirepass '${REDIS_PASSWORD}'
+    restart: on-failure
 
 volumes:
   postgres.db:

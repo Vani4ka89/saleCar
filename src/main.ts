@@ -4,6 +4,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { AppConfig, ConfigType } from './configs/config.type';
 import { Logger, ValidationPipe } from '@nestjs/common';
+import { GlobalExceptionFilter } from './common/exceptions/global-exception.filter';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -29,6 +30,7 @@ async function bootstrap() {
   });
 
   app.enableCors({ origin: true });
+  app.useGlobalFilters(new GlobalExceptionFilter());
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -45,4 +47,5 @@ async function bootstrap() {
     Logger.log(`Swagger is running at ${url}/docs`);
   });
 }
+
 void bootstrap();
