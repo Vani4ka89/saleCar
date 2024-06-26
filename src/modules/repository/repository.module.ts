@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { AccountTypeRepository } from './services/account-type.repository';
 import { AdRepository } from './services/ad.repository';
 import { CurrencyRepository } from './services/currency.repository';
@@ -15,6 +15,7 @@ const repositories = [
   UserRepository,
 ];
 
+@Global()
 @Module({
   providers: repositories,
   exports: repositories,

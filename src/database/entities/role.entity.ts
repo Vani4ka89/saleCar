@@ -5,7 +5,7 @@ import { UserEntity } from './user.entity';
 
 @Entity(ETableName.ROLE)
 export class RoleEntity extends BaseModel {
-  @Column('text')
+  @Column('text', { unique: true })
   name: string;
 
   @OneToMany(() => UserEntity, (entity) => entity.role)

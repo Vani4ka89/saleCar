@@ -9,7 +9,7 @@ import { RefreshTokenEntity } from './refresh-token.entity';
 
 @Entity(ETableName.USER)
 export class UserEntity extends BaseModel {
-  @Column('text')
+  @Column('text', { unique: true })
   email: string;
 
   @Column('text')
