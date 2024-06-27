@@ -12,8 +12,17 @@ export class AdEntity extends BaseModel {
   @Column('text')
   description: string;
 
+  @Column('text')
+  brand: string;
+
+  @Column('text')
+  model: string;
+
   @Column('int')
   price: number;
+
+  @Column('int')
+  year: number;
 
   @Column()
   ad_id: string;
@@ -26,11 +35,4 @@ export class AdEntity extends BaseModel {
   @ManyToOne(() => CurrencyEntity, (entity) => entity.ads)
   @JoinColumn({ name: 'currency_id' })
   currency?: CurrencyEntity;
-
-  // @ManyToOne(() => Vehicle, vehicle => vehicle.ads)
-  // vehicle: Vehicle;
-  //
-  //
-  // @ManyToOne(() => AdStatus, status => status.ads)
-  // status: AdStatus;
 }

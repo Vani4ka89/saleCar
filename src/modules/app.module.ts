@@ -5,7 +5,6 @@ import { RedisModule } from './redis/redis.module';
 import { RepositoryModule } from './repository/repository.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
-import { RoleModule } from './role/role.module';
 import configuration from '../configs/configuration';
 
 @Module({
@@ -19,7 +18,6 @@ import configuration from '../configs/configuration';
     RepositoryModule,
     UserModule,
     AuthModule,
-    RoleModule,
   ],
 })
 export class AppModule {}

@@ -31,13 +31,11 @@ export class RefreshJwtGuard implements CanActivate {
     if (!payload) {
       throw new UnauthorizedException('Token not valid');
     }
-
     const isExist =
       await this.refreshTokenRepository.isTokenExist(refreshToken);
     if (!isExist) {
       throw new UnauthorizedException('Token not valid');
     }
-
     const user = await this.userRepository.findOneBy({
       id: payload.userId,
     });

@@ -1,4 +1,8 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserRepository } from '../../repository/services/user.repository';
 import { UserEntity } from '../../../database/entities/user.entity';
 import { AuthRequestDto } from '../../auth/models/dto/request/auth-request.dto';
@@ -18,10 +22,17 @@ export class UserService {
   //   );
   // }
 
-  public async isEmailUniqueOrThrow(email: string): Promise<UserEntity> {
+  public async isEmailUniqueOrThrow(email: string): Promise<void> {
     const user = await this.userRepository.findOneBy({ email });
     if (user) {
-      throw new ConflictException('User already exist');
+      throw new ConflictException('User already exists');
+    }
+  }
+
+  public async isUserExist(email: string): Promise<UserEntity> {
+    const user = await this.userRepository.findOneBy({ email });
+    if (!user) {
+      throw new NotFoundException('User not found');
     }
     return user;
   }

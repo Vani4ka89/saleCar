@@ -6,8 +6,6 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
-import { AccountTypeRepository } from '../../repository/services/account-type.repository';
-import { RoleRepository } from '../../repository/services/role.repository';
 import { UserRepository } from '../../repository/services/user.repository';
 import { SKIP_AUTH } from '../constants/constants';
 import { ETokenType } from '../enums/token-type.enum';
@@ -21,8 +19,6 @@ export class AccessJwtGuard implements CanActivate {
     private tokenService: TokenService,
     private authCacheService: AuthCacheService,
     private userRepository: UserRepository,
-    private roleRepository: RoleRepository,
-    private accountTypeRepository: AccountTypeRepository,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -59,16 +55,12 @@ export class AccessJwtGuard implements CanActivate {
     if (!user) {
       throw new UnauthorizedException('Token not valid');
     }
-    const role = await this.roleRepository.findOneBy({ id: user.role_id });
-    const accountType = await this.accountTypeRepository.findOneBy({
-      id: user.accountType_id,
-    });
 
     request.user = {
       userId: user.id,
       email: user.email,
-      role: role.name,
-      accountType: accountType.name,
+      role: user.role,
+      accountType: user.accountType,
     };
     return true;
   }
