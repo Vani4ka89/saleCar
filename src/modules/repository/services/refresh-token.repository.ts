@@ -12,11 +12,11 @@ export class RefreshTokenRepository extends Repository<RefreshTokenEntity> {
   public async saveToken(
     userId: string,
     token: string,
-    // em?: EntityManager,
+    em?: EntityManager,
   ): Promise<RefreshTokenEntity> {
-    // const refreshTokenRepository = em.getRepository(RefreshTokenEntity) ?? this;
+    const refreshTokenRepository = em.getRepository(RefreshTokenEntity) ?? this;
     return await this.save(
-      this.create({
+      refreshTokenRepository.create({
         user_id: userId,
         refreshToken: token,
       }),

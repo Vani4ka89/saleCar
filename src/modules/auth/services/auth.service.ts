@@ -14,6 +14,10 @@ import { AuthCacheService } from './auth-cache.service';
 import { ITokenPair } from '../types/token.type';
 import { IUserData } from '../types/user-data.type';
 import { TokenResponseDto } from '../models/dto/response/token-response.dto';
+import { InjectEntityManager } from '@nestjs/typeorm';
+import { EntityManager } from 'typeorm';
+import { UserEntity } from '../../../database/entities/user.entity';
+import { RefreshTokenEntity } from '../../../database/entities/refresh-token.entity';
 
 @Injectable()
 export class AuthService {
@@ -23,6 +27,8 @@ export class AuthService {
     private readonly authCacheService: AuthCacheService,
     private readonly userService: UserService,
     private readonly tokenService: TokenService,
+    @InjectEntityManager()
+    private readonly entityManager: EntityManager,
   ) {}
 
   public async signUp(dto: AuthRequestDto): Promise<SignUpResponseDto> {
@@ -35,72 +41,88 @@ export class AuthService {
   }
 
   public async signIn(dto: AuthRequestDto): Promise<SignInResponseDto> {
-    const user = await this.userRepository.findOne({
-      where: { email: dto.email },
-      select: {
-        id: true,
-        password: true,
-        email: true,
-        role: true,
-        accountType: true,
-      },
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const userRepository =
+        em.getRepository(UserEntity) ?? this.userRepository;
+      const user = await userRepository.findOne({
+        where: { email: dto.email },
+        select: {
+          id: true,
+          password: true,
+          email: true,
+          role: true,
+          accountType: true,
+        },
+      });
+      if (!user) {
+        throw new UnauthorizedException('Email or password are incorrect');
+      }
+      const isMatch = await bcrypt.compare(dto.password, user.password);
+      if (!isMatch) {
+        throw new UnauthorizedException('Email or password are incorrect');
+      }
+      const tokens = await this.tokenService.generateTokenPair({
+        email: user.email,
+        userId: user.id,
+        role: user.role,
+        accountType: user.accountType,
+      });
+      await Promise.all([
+        this.removeRefreshTokens(user.id, em),
+        this.saveAuthTokens(user.id, tokens, em),
+      ]);
+      return AuthMapper.toSignInResponseDto(user, tokens);
     });
-    if (!user) {
-      throw new UnauthorizedException('Email or password are incorrect');
-    }
-    const isMatch = await bcrypt.compare(dto.password, user.password);
-    if (!isMatch) {
-      throw new UnauthorizedException('Email or password are incorrect');
-    }
-    const tokens = await this.tokenService.generateTokenPair({
-      email: user.email,
-      userId: user.id,
-      role: user.role,
-      accountType: user.accountType,
-    });
-    await Promise.all([
-      this.removeRefreshTokens(user.id),
-      this.saveAuthTokens(user.id, tokens),
-    ]);
-    return AuthMapper.toSignInResponseDto(user, tokens);
   }
 
   public async updateTokensPair(
     userData: IUserData,
   ): Promise<TokenResponseDto> {
-    const user = await this.userRepository.findOneBy({
-      id: userData.userId,
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const userRepository =
+        em.getRepository(UserEntity) ?? this.userRepository;
+      const user = await userRepository.findOneBy({
+        id: userData.userId,
+      });
+      const tokens = await this.tokenService.generateTokenPair({
+        email: user.email,
+        userId: user.id,
+        role: user.role,
+        accountType: user.accountType,
+      });
+      await Promise.all([
+        this.removeRefreshTokens(user.id, em),
+        this.saveAuthTokens(user.id, tokens, em),
+      ]);
+      return tokens;
     });
-    const tokens = await this.tokenService.generateTokenPair({
-      email: user.email,
-      userId: user.id,
-      role: user.role,
-      accountType: user.accountType,
-    });
-    await Promise.all([
-      this.removeRefreshTokens(user.id),
-      this.saveAuthTokens(user.id, tokens),
-    ]);
-    return tokens;
   }
 
   public async logout(userData: IUserData): Promise<void> {
-    await this.removeRefreshTokens(userData.userId);
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      await this.removeRefreshTokens(userData.userId, em);
+    });
   }
 
   private async saveAuthTokens(
     userId: string,
     tokens: ITokenPair,
+    em: EntityManager,
   ): Promise<void> {
     await Promise.all([
-      this.refreshTokenRepository.saveToken(userId, tokens.refreshToken),
+      this.refreshTokenRepository.saveToken(userId, tokens.refreshToken, em),
       this.authCacheService.saveToken(userId, tokens.accessToken),
     ]);
   }
 
-  public async removeRefreshTokens(userId: string): Promise<void> {
+  public async removeRefreshTokens(
+    userId: string,
+    em: EntityManager,
+  ): Promise<void> {
+    const refreshTokenRepository =
+      em.getRepository(RefreshTokenEntity) ?? this.refreshTokenRepository;
     await Promise.all([
-      this.refreshTokenRepository.delete({
+      refreshTokenRepository.delete({
         user_id: userId,
       }),
       this.authCacheService.removeToken(userId),

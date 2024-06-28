@@ -5,6 +5,7 @@ import { RedisModule } from './redis/redis.module';
 import { RepositoryModule } from './repository/repository.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
+import { CarAdModule } from './car_ad/car_ad.module';
 import configuration from '../configs/configuration';
 
 @Module({
@@ -16,8 +17,9 @@ import configuration from '../configs/configuration';
     PostgresModule,
     RedisModule,
     RepositoryModule,
-    UserModule,
     AuthModule,
+    CarAdModule,
+    UserModule,
   ],
 })
 export class AppModule {}

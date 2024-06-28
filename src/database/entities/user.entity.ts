@@ -1,7 +1,7 @@
 import { Column, Entity, OneToMany } from 'typeorm';
 import { ETableName } from './enums/table-name.enum';
 import { BaseModel } from './models/base.model';
-import { AdEntity } from './ad.entity';
+import { CarAdEntity } from './car-ad.entity';
 import { MessageEntity } from './message.entity';
 import { RefreshTokenEntity } from './refresh-token.entity';
 import { EAccountType } from '../../modules/auth/enums/account-type.enum';
@@ -19,16 +19,22 @@ export class UserEntity extends BaseModel {
   password: string;
 
   @Column('enum', { enum: ERole, default: ERole.SELLER })
-  role: ERole;
+  role: string;
 
   @Column('enum', { enum: EAccountType, default: EAccountType.BASIC })
-  accountType: EAccountType;
+  accountType: string;
 
   @Column('text', { nullable: true })
   image?: string;
 
-  @OneToMany(() => AdEntity, (entity) => entity.user)
-  ads?: AdEntity[];
+  @Column({ type: 'boolean', default: false })
+  banned: boolean;
+
+  @Column('text', { nullable: true })
+  banReason?: string;
+
+  @OneToMany(() => CarAdEntity, (entity) => entity.user)
+  ads?: CarAdEntity[];
 
   @OneToMany(() => MessageEntity, (entity) => entity.user)
   messages?: MessageEntity[];

@@ -1,7 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString, Length, Matches } from 'class-validator';
+import { IsEnum, IsOptional, IsString, Length, Matches } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { TransformHelper } from '../../../../../common/helpers/transform.helper';
+import { EAccountType } from '../../../../auth/enums/account-type.enum';
+import { ERole } from '../../../../../common/enums/role.enum';
 
 export class BaseUserRequestDto {
   @ApiProperty()
@@ -25,10 +27,12 @@ export class BaseUserRequestDto {
   password: string;
 
   @ApiProperty()
+  @IsEnum(ERole)
   @IsString()
   role: string;
 
   @ApiProperty()
+  @IsEnum(EAccountType)
   @IsString()
   accountType: string;
 }
