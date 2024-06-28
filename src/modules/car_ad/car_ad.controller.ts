@@ -66,11 +66,11 @@ export class CarAdController {
 
   @SkipAuth()
   @ApiOperation({ summary: 'Get public car advertisement' })
-  @Get(':carId')
+  @Get(':id')
   public async getCarAdById(
-    @Param('carId', ParseUUIDPipe) carId: string,
+    @Param('id', ParseUUIDPipe) carAdId: string,
   ): Promise<CarAdResponseDto> {
-    return await this.carAdService.getCarAdById(carId);
+    return await this.carAdService.getCarAdById(carAdId);
   }
 
   @ApiBearerAuth()

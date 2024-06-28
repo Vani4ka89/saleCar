@@ -38,8 +38,9 @@ export class CarAdService {
     userData: IUserData,
   ): Promise<CarAdResponseDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
-      const carAdRepository = em.getRepository(CarAdEntity);
-      const user = await this.userService.findByIdOrThrow(userData.userId);
+      const carAdRepository =
+        em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const user = await this.userService.findByIdOrThrow(userData.userId, em);
       if (userData.accountType === EAccountType.BASIC) {
         const userCars = await carAdRepository.count({
           where: { user_id: user.id },
@@ -86,10 +87,15 @@ export class CarAdService {
     });
   }
 
-  public async getCarAdById(carId: string): Promise<CarAdResponseDto> {
+  public async getCarAdById(carAdId: string): Promise<CarAdResponseDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carRepository = em.getRepository(CarAdEntity);
-      const car = await carRepository.findOneBy({ id: carId });
+      const car = await carRepository.findOne({
+        where: { id: carAdId },
+        relations: {
+          user: true,
+        },
+      });
       if (!car) {
         throw new UnprocessableEntityException('CarAd not found');
       }

@@ -7,6 +7,7 @@ import {
   CarAdResponseDto,
   CarAdResponseManyDto,
 } from '../models/dto/response/car-ad.response.dto';
+import { UserMapper } from '../../user/services/user.mapper';
 
 config({ path: '.env' });
 
@@ -25,11 +26,12 @@ export class CarAdMapper {
       image: entity.image ? `${s3Config.AWS_S3_URL}${entity.image}` : null,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+      user: entity.user ? UserMapper.toResponseDto(entity.user) : null,
     };
   }
 
   public static toResponseManyDto(
-    entity: CarAdEntity[],
+    entities: CarAdEntity[],
     total?: number,
     query?: ListCarAdRequestDto,
   ): CarAdResponseManyDto {
@@ -39,7 +41,7 @@ export class CarAdMapper {
         offset: query.offset,
         total,
       },
-      carAds: entity.map((carAd) => this.toResponseDto(carAd)),
+      carAds: entities.map((carAd) => this.toResponseDto(carAd)),
     };
   }
 }

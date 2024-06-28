@@ -1,3 +1,5 @@
+import { UserResponseDto } from '../../../../user/models/dto/response/user-response.dto';
+
 export class CarAdResponseDto {
   id: string;
   title: string;
@@ -9,6 +11,7 @@ export class CarAdResponseDto {
   image: string;
   createdAt: Date;
   updatedAt: Date;
+  user: UserResponseDto;
 }
 
 export class CarAdResponseManyDto {

@@ -25,30 +25,23 @@ export class UserService {
     private readonly userRepository: UserRepository,
   ) {}
 
-  // public async createUser(
-  //   dto: AuthRequestDto,
-  //   password: string,
-  //   role: string,
-  //   accountType: string,
-  // ) {
-  //   await this.userRepository.save(
-  //     this.userRepository.create({ ...dto, password, role, accountType }),
-  //   );
-  // }
-
   public async changeUserAccountType(
     dto: UpdateUserAccTypeRequestDto,
     userId: string,
   ): Promise<UserResponseDto> {
-    const user = await this.findByIdOrThrow(userId);
-    if (user.accountType === dto.accountType) {
-      throw new ConflictException(
-        `User already has ${dto.accountType} account`,
-      );
-    }
-    user.accountType = dto.accountType;
-    const userEntity = await this.userRepository.save(user);
-    return UserMapper.toResponseDto(userEntity);
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const userRepository =
+        em.getRepository(UserEntity) ?? this.userRepository;
+      const user = await this.findByIdOrThrow(userId, em);
+      if (user.accountType === dto.accountType) {
+        throw new ConflictException(
+          `User already has ${dto.accountType} account`,
+        );
+      }
+      user.accountType = dto.accountType;
+      const userEntity = await userRepository.save(user);
+      return UserMapper.toResponseDto(userEntity);
+    });
   }
 
   public async changeUserRole(
@@ -112,7 +105,7 @@ export class UserService {
   ): Promise<UserResponseDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const userRepository = em.getRepository(UserEntity);
-      const entity = await this.findByIdOrThrow(useData.userId, em);
+      const entity = await this.findByIdOrThrow(useData.userId);
       await userRepository.save(userRepository.merge(entity, dto));
       return UserMapper.toResponseDto(entity);
     });
@@ -122,7 +115,7 @@ export class UserService {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const userRepository = em.getRepository(UserEntity);
       const refreshTokenRepository = em.getRepository(RefreshTokenEntity);
-      const user = await this.findByIdOrThrow(userId, em);
+      const user = await this.findByIdOrThrow(userId);
       await Promise.all([
         refreshTokenRepository.delete(user.id),
         // this.authCacheService.removeToken(user.id),
