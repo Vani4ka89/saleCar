@@ -28,6 +28,8 @@ import { validators } from './validators/upload-photo.validator';
 import { ERole } from '../../common/enums/role.enum';
 import { CarAdService } from './services/car_ad.service';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { CarAdStatisticRequestDto } from './models/dto/request/car-ad-statistic-request.dto';
+import { CarAdStatisticsResponseDto } from './models/dto/response/car-ad-statistics-response.dto';
 
 @ApiTags('CarAd')
 @Controller('car-ads')
@@ -63,6 +65,17 @@ export class CarAdController {
     @CurrentUser() userData: IUserData,
   ): Promise<CarAdResponseManyDto> {
     return await this.carAdService.getAllMyCarAds(query, userData);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get statistics' })
+  @Post('statistics')
+  @Roles(ERole.SELLER)
+  public async getCarAdStatistics(
+    @Body() dto: CarAdStatisticRequestDto,
+    @CurrentUser() userData: IUserData,
+  ): Promise<CarAdStatisticsResponseDto> {
+    return await this.carAdService.getCarAdStatistics(dto, userData);
   }
 
   @SkipAuth()

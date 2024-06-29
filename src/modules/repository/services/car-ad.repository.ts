@@ -4,6 +4,7 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CarAdEntity } from '../../../database/entities/car-ad.entity';
 import { IUserData } from '../../auth/types/user-data.type';
 import { ListCarAdRequestDto } from '../../car_ad/models/dto/request/list-car-ad.request.dto';
+import { CarAdStatisticRequestDto } from '../../car_ad/models/dto/request/car-ad-statistic-request.dto';
 
 @Injectable()
 export class CarAdRepository extends Repository<CarAdEntity> {
@@ -36,5 +37,27 @@ export class CarAdRepository extends Repository<CarAdEntity> {
     qb.skip(query.offset);
     qb.addOrderBy('car.createdAt');
     return await qb.getManyAndCount();
+  }
+
+  public async getCarAdsStatistics(
+    dto: CarAdStatisticRequestDto,
+    em?: EntityManager,
+  ): Promise<CarAdEntity[]> {
+    const carRepository = em.getRepository(CarAdEntity) ?? this;
+    const qb = carRepository.createQueryBuilder('car');
+    qb.setParameter('brand', dto.brand);
+    qb.setParameter('model', dto.model);
+    qb.setParameter('year', dto.year);
+    if (dto.brand) {
+      qb.where('car.brand = :brand');
+    }
+    if (dto.model) {
+      qb.where('car.model = :model');
+    }
+    if (dto.year) {
+      qb.where('car.year = :year');
+    }
+    qb.addOrderBy('car.createdAt');
+    return await qb.getMany();
   }
 }

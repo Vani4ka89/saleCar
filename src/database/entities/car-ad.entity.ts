@@ -26,6 +26,9 @@ export class CarAdEntity extends BaseModel {
   @Column('text', { nullable: true })
   image?: string;
 
+  @Column('int', { default: 0 })
+  views: number;
+
   @Column()
   user_id: string;
   @ManyToOne(() => UserEntity, (entity) => entity.ads)

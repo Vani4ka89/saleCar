@@ -22,6 +22,8 @@ import { CarAdMapper } from './car-ad.mapper';
 import { S3Service } from './s3.service';
 import { EAccountType } from '../../auth/enums/account-type.enum';
 import { CarAdRepository } from '../../repository/services/car-ad.repository';
+import { CarAdStatisticRequestDto } from '../models/dto/request/car-ad-statistic-request.dto';
+import { CarAdStatisticsResponseDto } from '../models/dto/response/car-ad-statistics-response.dto';
 
 @Injectable()
 export class CarAdService {
@@ -166,6 +168,28 @@ export class CarAdService {
         }),
       );
       return CarAdMapper.toResponseDto(car);
+    });
+  }
+
+  public async getCarAdStatistics(
+    dto: CarAdStatisticRequestDto,
+    userData: IUserData,
+  ): Promise<CarAdStatisticsResponseDto> {
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const user = await this.userService.findByIdOrThrow(userData.userId, em);
+      if (user.accountType !== EAccountType.PREMIUM) {
+        throw new ForbiddenException(
+          'Access denied. Only premium users can access statistics',
+        );
+      }
+      const userAds = await this.carAdRepository.getCarAdsStatistics(dto, em);
+      const averagePrice =
+        userAds.reduce((acc, ad) => acc + ad.price, 0) / userAds.length;
+      const totalViews = userAds.reduce((acc, ad) => acc + ad.views, 0);
+      return {
+        averagePrice,
+        totalViews,
+      };
     });
   }
 }
