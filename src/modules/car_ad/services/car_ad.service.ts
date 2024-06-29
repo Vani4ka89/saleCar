@@ -103,35 +103,6 @@ export class CarAdService {
     });
   }
 
-  public async uploadPhoto(
-    photo: Express.Multer.File,
-    carAdId: string,
-    userData: IUserData,
-  ): Promise<CarAdResponseDto> {
-    return await this.entityManager.transaction(async (em: EntityManager) => {
-      const carRepository = em.getRepository(CarAdEntity);
-      const carAd = await carRepository.findOneBy({
-        user_id: userData.userId,
-        id: carAdId,
-      });
-      if (carAd.image) {
-        await this.s3Service.deleteFile(carAd.image);
-      }
-      const filePath = await this.s3Service.uploadFile(
-        photo,
-        EFileType.CAR_PHOTO,
-        carAd.id,
-      );
-      const car = await carRepository.save(
-        carRepository.merge(carAd, {
-          image: filePath,
-          user_id: userData.userId,
-        }),
-      );
-      return CarAdMapper.toResponseDto(car);
-    });
-  }
-
   public async editMyCarAd(
     userData: IUserData,
     carAdId: string,
@@ -170,6 +141,35 @@ export class CarAdService {
         await this.s3Service.deleteFile(carAd.image);
       }
       await carAdRepository.remove(carAd);
+    });
+  }
+
+  public async uploadPhoto(
+    photo: Express.Multer.File,
+    carAdId: string,
+    userData: IUserData,
+  ): Promise<CarAdResponseDto> {
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const carRepository = em.getRepository(CarAdEntity);
+      const carAd = await carRepository.findOneBy({
+        user_id: userData.userId,
+        id: carAdId,
+      });
+      if (carAd.image) {
+        await this.s3Service.deleteFile(carAd.image);
+      }
+      const filePath = await this.s3Service.uploadFile(
+        photo,
+        EFileType.CAR_PHOTO,
+        carAd.id,
+      );
+      const car = await carRepository.save(
+        carRepository.merge(carAd, {
+          image: filePath,
+          user_id: userData.userId,
+        }),
+      );
+      return CarAdMapper.toResponseDto(car);
     });
   }
 }

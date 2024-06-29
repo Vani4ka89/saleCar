@@ -31,7 +31,7 @@ export class AccessJwtGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const accessToken = request.get('Authorization')?.split('Bearer ')[1];
     if (!accessToken) {
-      throw new UnauthorizedException('No token');
+      throw new UnauthorizedException();
     }
     const payload = await this.tokenService.verifyToken(
       accessToken,
@@ -53,7 +53,7 @@ export class AccessJwtGuard implements CanActivate {
       id: payload.userId,
     });
     if (!user) {
-      throw new UnauthorizedException('Token not valid');
+      throw new UnauthorizedException();
     }
 
     request.user = {

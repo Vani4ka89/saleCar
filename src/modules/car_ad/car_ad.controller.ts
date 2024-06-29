@@ -35,8 +35,9 @@ export class CarAdController {
   constructor(private readonly carAdService: CarAdService) {}
 
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Create car-advertisement' })
   @Post()
-  @Roles(ERole.ADMIN, ERole.SELLER)
+  @Roles(ERole.SELLER)
   public async createCarAd(
     @Body() dto: CreateCarAdRequestDto,
     @CurrentUser() userData: IUserData,
@@ -45,7 +46,7 @@ export class CarAdController {
   }
 
   @SkipAuth()
-  @ApiOperation({ summary: 'Get all car advertisements' })
+  @ApiOperation({ summary: 'Get all car-advertisements (public)' })
   @Get()
   public async getAllCarAds(
     @Query() query: ListCarAdRequestDto,
@@ -54,9 +55,9 @@ export class CarAdController {
   }
 
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get all my cars advertisements' })
+  @ApiOperation({ summary: 'Get my car-advertisements' })
   @Get('my')
-  @Roles(ERole.ADMIN, ERole.SELLER)
+  @Roles(ERole.SELLER)
   public async getAllMyCarAds(
     @Query() query: ListCarAdRequestDto,
     @CurrentUser() userData: IUserData,
@@ -65,7 +66,7 @@ export class CarAdController {
   }
 
   @SkipAuth()
-  @ApiOperation({ summary: 'Get public car advertisement' })
+  @ApiOperation({ summary: 'Get one car-advertisement (public)' })
   @Get(':id')
   public async getCarAdById(
     @Param('id', ParseUUIDPipe) carAdId: string,
@@ -74,41 +75,37 @@ export class CarAdController {
   }
 
   @ApiBearerAuth()
-  @Put(':carAdId/photo')
-  @Roles(ERole.ADMIN, ERole.SELLER)
-  @UseInterceptors(FileInterceptor('file'))
-  public async uploadPhoto(
-    @UploadedFile(validators) file: Express.Multer.File,
-    @Param('carAdId', ParseUUIDPipe) carAdId: string,
-    @CurrentUser() userData: IUserData,
-  ): Promise<CarAdResponseDto> {
-    return await this.carAdService.uploadPhoto(file, carAdId, userData);
-  }
-
-  @ApiOperation({
-    summary: 'Update my car advertisement (Only for admin, manager, seller)',
-  })
-  @ApiBearerAuth()
-  @Put(':carAdId')
-  @Roles(ERole.ADMIN, ERole.SELLER)
+  @ApiOperation({ summary: 'Update my car-advertisement' })
+  @Put(':id')
+  @Roles(ERole.SELLER)
   public async editMyCarAd(
-    @Param('carAdId', ParseUUIDPipe) carAdId: string,
+    @Param('id', ParseUUIDPipe) carAdId: string,
     @Body() dto: UpdateCarAdRequestDto,
     @CurrentUser() userData: IUserData,
   ): Promise<CarAdResponseDto> {
     return await this.carAdService.editMyCarAd(userData, carAdId, dto);
   }
 
-  @ApiOperation({
-    summary: 'Delete car advertisement (Only for admin, manager, seller)',
-  })
   @ApiBearerAuth()
-  @Delete(':carAdId')
-  @Roles(ERole.ADMIN, ERole.SELLER)
+  @ApiOperation({ summary: 'Delete my car-advertisement' })
+  @Delete(':id')
+  @Roles(ERole.SELLER)
   public async removeCarAdById(
-    @Param('carAdId', ParseUUIDPipe) carAdId: string,
+    @Param('id', ParseUUIDPipe) carAdId: string,
     @CurrentUser() userData: IUserData,
   ): Promise<void> {
     await this.carAdService.removeCarAdById(carAdId, userData);
+  }
+
+  @ApiBearerAuth()
+  @Put(':id/photo')
+  @Roles(ERole.SELLER)
+  @UseInterceptors(FileInterceptor('file'))
+  public async uploadPhoto(
+    @UploadedFile(validators) file: Express.Multer.File,
+    @Param('id', ParseUUIDPipe) carAdId: string,
+    @CurrentUser() userData: IUserData,
+  ): Promise<CarAdResponseDto> {
+    return await this.carAdService.uploadPhoto(file, carAdId, userData);
   }
 }
