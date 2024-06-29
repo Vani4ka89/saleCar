@@ -8,6 +8,7 @@ export class CarAdResponseDto {
   model: string;
   price: number;
   year: number;
+  currency: string;
   image: string;
   createdAt: Date;
   updatedAt: Date;

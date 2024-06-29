@@ -24,11 +24,15 @@ import { EAccountType } from '../../auth/enums/account-type.enum';
 import { CarAdRepository } from '../../repository/services/car-ad.repository';
 import { CarAdStatisticRequestDto } from '../models/dto/request/car-ad-statistic-request.dto';
 import { CarAdStatisticsResponseDto } from '../models/dto/response/car-ad-statistics-response.dto';
+import { CurrencyRepository } from '../../repository/services/currency.repository';
+import { ECurrency } from '../enums/currency.enum';
+import { CurrencyEntity } from '../../../database/entities/currency.entity';
 
 @Injectable()
 export class CarAdService {
   constructor(
     private readonly carAdRepository: CarAdRepository,
+    private readonly currencyRepository: CurrencyRepository,
     private readonly userService: UserService,
     private readonly s3Service: S3Service,
     @InjectEntityManager()
@@ -42,6 +46,25 @@ export class CarAdService {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository =
         em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const currencyRepository =
+        em.getRepository(CurrencyEntity) ?? this.currencyRepository;
+
+      const USD = await currencyRepository.findOneBy({
+        ccy: ECurrency.USD,
+      });
+      const EUR = await currencyRepository.findOneBy({
+        ccy: ECurrency.EUR,
+      });
+
+      let priceUSD: number;
+      if (dto.currency === ECurrency.UAH) {
+        priceUSD = dto.price / USD.sale;
+      } else if (dto.currency === ECurrency.EUR) {
+        priceUSD = (dto.price * USD.buy) / EUR.sale;
+      } else {
+        priceUSD = dto.price;
+      }
+
       const user = await this.userService.findByIdOrThrow(userData.userId, em);
       if (userData.accountType === EAccountType.BASIC) {
         const userCars = await carAdRepository.count({
@@ -57,6 +80,7 @@ export class CarAdService {
         carAdRepository.create({
           ...dto,
           user_id: user.id,
+          price: priceUSD,
         }),
       );
       return CarAdMapper.toResponseDto(car);

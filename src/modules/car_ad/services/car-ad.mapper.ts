@@ -23,6 +23,7 @@ export class CarAdMapper {
       model: entity.model,
       price: entity.price,
       year: entity.year,
+      currency: entity.currency,
       image: entity.image ? `${s3Config.AWS_S3_URL}${entity.image}` : null,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,

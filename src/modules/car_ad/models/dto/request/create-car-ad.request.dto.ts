@@ -8,4 +8,5 @@ export class CreateCarAdRequestDto extends PickType(BaseCarAdRequestDto, [
   'model',
   'price',
   'year',
+  'currency',
 ]) {}

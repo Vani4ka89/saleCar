@@ -1,8 +1,17 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
+import { ECurrency } from '../../../enums/currency.enum';
 
 export class BaseCarAdRequestDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'Sale my car' })
   @IsString()
   title: string;
 
@@ -11,31 +20,46 @@ export class BaseCarAdRequestDto {
   @IsString()
   description?: string;
 
-  @ApiProperty({ example: 'Honda' })
+  @ApiProperty({ example: 'honda' })
   @IsString()
   brand: string;
 
-  @ApiProperty({ example: 'Accord' })
+  @ApiProperty({ example: 'accord' })
   @IsString()
   model: string;
 
-  @ApiProperty({ example: '12000' })
+  @ApiProperty({ example: 7500 })
   @IsInt()
   price: number;
 
-  @ApiProperty({ example: '2015' })
+  @ApiProperty({ example: 2007 })
   @Min(1990)
   @Max(new Date().getFullYear())
   @IsInt()
   year: number;
+
+  @ApiProperty({ example: 'USD' })
+  @IsEnum(ECurrency)
+  @IsString()
+  currency: string;
+
+  @ApiProperty({ example: "Ternopil'ska obl." })
+  @IsOptional()
+  @IsString()
+  region?: string;
 
   @ApiProperty()
   @IsOptional()
   @IsString()
   image?: string;
 
-  // @ApiProperty({ example: 'USD' })
-  // @IsEnum(ECurrency)
-  // @IsString()
-  // currency: string;
+  @ApiProperty()
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+
+  @ApiProperty()
+  @IsOptional()
+  @IsInt()
+  views?: number;
 }

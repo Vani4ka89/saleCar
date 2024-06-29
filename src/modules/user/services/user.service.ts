@@ -18,12 +18,17 @@ import { InjectEntityManager } from '@nestjs/typeorm';
 import { IUserData } from '../../auth/types/user-data.type';
 import { RefreshTokenEntity } from '../../../database/entities/refresh-token.entity';
 import { UpdateUserRequestDto } from '../models/dto/request/update-user.request.dto';
+import { CarAdEntity } from '../../../database/entities/car-ad.entity';
+import { CarAdRepository } from '../../repository/services/car-ad.repository';
+import { RefreshTokenRepository } from '../../repository/services/refresh-token.repository';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
+    private readonly carAdRepository: CarAdRepository,
+    private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly userRepository: UserRepository,
   ) {}
 
@@ -123,12 +128,16 @@ export class UserService {
 
   public async deleteProfile(userId: string): Promise<void> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
-      const userRepository = em.getRepository(UserEntity);
-      const refreshTokenRepository = em.getRepository(RefreshTokenEntity);
+      const userRepository =
+        em.getRepository(UserEntity) ?? this.userRepository;
+      const refreshTokenRepository =
+        em.getRepository(RefreshTokenEntity) ?? this.refreshTokenRepository;
+      const carAdRepository =
+        em.getRepository(CarAdEntity) ?? this.carAdRepository;
       const user = await this.findByIdOrThrow(userId, em);
       await Promise.all([
-        refreshTokenRepository.delete(user.id),
-        // this.authCacheService.removeToken(user.id),
+        refreshTokenRepository.delete({ user_id: user.id }),
+        carAdRepository.delete({ user_id: user.id }),
         userRepository.remove(user),
       ]);
     });
