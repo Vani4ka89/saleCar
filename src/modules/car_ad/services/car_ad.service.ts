@@ -124,15 +124,11 @@ export class CarAdService {
     });
   }
 
-  public async removeCarAdById(
-    carAdId: string,
-    userData: IUserData,
-  ): Promise<void> {
+  public async removeCarAdById(carAdId: string): Promise<void> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository = em.getRepository(CarAdEntity);
       const carAd = await carAdRepository.findOneBy({
         id: carAdId,
-        user_id: userData.userId,
       });
       if (!carAd) {
         throw new UnprocessableEntityException('Car advertisement not found');

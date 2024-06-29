@@ -31,9 +31,9 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Change account-type (manager option)' })
+  @ApiOperation({ summary: 'Change account-type (admin option)' })
   @Post(':id/change-acc-type')
-  @Roles(ERole.MANAGER)
+  @Roles(ERole.ADMIN)
   public async changeUserAccountType(
     @Param('id', ParseUUIDPipe) userId: string,
     @Body() dto: UpdateUserAccTypeRequestDto,
@@ -42,9 +42,9 @@ export class UserController {
   }
 
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Change role (manager option)' })
+  @ApiOperation({ summary: 'Change role (admin option)' })
   @Post(':id/change-role')
-  @Roles(ERole.MANAGER)
+  @Roles(ERole.ADMIN)
   public async changeUserRole(
     @Param('id', ParseUUIDPipe) userId: string,
     @Body() dto: UpdateUserRoleRequestDto,
@@ -100,10 +100,10 @@ export class UserController {
   }
 
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete profile (manager option)' })
+  @ApiOperation({ summary: 'Delete profile (admin option)' })
   @HttpCode(HttpStatus.NO_CONTENT)
   @Delete(':id')
-  @Roles(ERole.MANAGER)
+  @Roles(ERole.ADMIN)
   public async deleteProfile(
     @Param('id', ParseUUIDPipe) userId: string,
   ): Promise<void> {

@@ -87,17 +87,17 @@ export class CarAdController {
   }
 
   @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete my car-advertisement' })
+  @ApiOperation({ summary: 'Delete car-advertisement (admin option)' })
   @Delete(':id')
-  @Roles(ERole.SELLER)
+  @Roles(ERole.ADMIN)
   public async removeCarAdById(
     @Param('id', ParseUUIDPipe) carAdId: string,
-    @CurrentUser() userData: IUserData,
   ): Promise<void> {
-    await this.carAdService.removeCarAdById(carAdId, userData);
+    await this.carAdService.removeCarAdById(carAdId);
   }
 
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Add car-advertisement photo (admin option)' })
   @Put(':id/photo')
   @Roles(ERole.SELLER)
   @UseInterceptors(FileInterceptor('file'))
