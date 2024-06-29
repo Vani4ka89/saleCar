@@ -1,5 +1,8 @@
 import { UserEntity } from '../../../database/entities/user.entity';
-import { UserResponseDto } from '../models/dto/response/user-response.dto';
+import {
+  UserResponseAllDto,
+  UserResponseDto,
+} from '../models/dto/response/user-response.dto';
 
 export class UserMapper {
   public static toResponseDto(entity: UserEntity): UserResponseDto {
@@ -12,6 +15,12 @@ export class UserMapper {
       image: entity.image,
       banned: entity.banned,
       banReason: entity.banReason,
+    };
+  }
+
+  public static toResponseAllDto(entities: UserEntity[]): UserResponseAllDto {
+    return {
+      data: entities.map((entity) => this.toResponseDto(entity)),
     };
   }
 }

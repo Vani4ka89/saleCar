@@ -1,13 +1,15 @@
 import {
   ConflictException,
   Injectable,
-  NotFoundException,
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { UserRepository } from '../../repository/services/user.repository';
 import { UserEntity } from '../../../database/entities/user.entity';
 import { UpdateUserAccTypeRequestDto } from '../models/dto/request/update-user-acc-type-request.dto';
-import { UserResponseDto } from '../models/dto/response/user-response.dto';
+import {
+  UserResponseAllDto,
+  UserResponseDto,
+} from '../models/dto/response/user-response.dto';
 import { UserMapper } from './user.mapper';
 import { UpdateUserRoleRequestDto } from '../models/dto/request/update-user-role-request.dto';
 import { BanUserRequestDto } from '../models/dto/request/ban-user.request.dto';
@@ -91,10 +93,18 @@ export class UserService {
     });
   }
 
+  public async getAllUsers(): Promise<UserResponseAllDto> {
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const userRepository =
+        em.getRepository(UserEntity) ?? this.userRepository;
+      const users = await userRepository.find();
+      return UserMapper.toResponseAllDto(users);
+    });
+  }
+
   public async getMyProfile(userData: IUserData): Promise<UserResponseDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
-      const userRepository = em.getRepository(UserEntity);
-      const entity = await userRepository.findOneBy({ id: userData.userId });
+      const entity = await this.findByIdOrThrow(userData.userId, em);
       return UserMapper.toResponseDto(entity);
     });
   }
@@ -105,7 +115,7 @@ export class UserService {
   ): Promise<UserResponseDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const userRepository = em.getRepository(UserEntity);
-      const entity = await this.findByIdOrThrow(useData.userId);
+      const entity = await this.findByIdOrThrow(useData.userId, em);
       await userRepository.save(userRepository.merge(entity, dto));
       return UserMapper.toResponseDto(entity);
     });
@@ -115,7 +125,7 @@ export class UserService {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const userRepository = em.getRepository(UserEntity);
       const refreshTokenRepository = em.getRepository(RefreshTokenEntity);
-      const user = await this.findByIdOrThrow(userId);
+      const user = await this.findByIdOrThrow(userId, em);
       await Promise.all([
         refreshTokenRepository.delete(user.id),
         // this.authCacheService.removeToken(user.id),
@@ -139,14 +149,6 @@ export class UserService {
     const user = await userRepository.findOneBy({ id: userId });
     if (!user) {
       throw new UnprocessableEntityException('User not found');
-    }
-    return user;
-  }
-
-  public async isUserExist(email: string): Promise<UserEntity> {
-    const user = await this.userRepository.findOneBy({ email });
-    if (!user) {
-      throw new NotFoundException('User not found');
     }
     return user;
   }

@@ -8,3 +8,7 @@ export class UserResponseDto {
   banned: boolean;
   banReason: string;
 }
+
+export class UserResponseAllDto {
+  data: UserResponseDto[];
+}
