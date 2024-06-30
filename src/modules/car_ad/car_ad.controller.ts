@@ -23,6 +23,7 @@ import { UpdateCarAdRequestDto } from './models/dto/request/update-car-ad.reques
 import {
   CarAdResponseDto,
   CarAdResponseManyDto,
+  CarAdResponseWithOutUserDto,
 } from './models/dto/response/car-ad.response.dto';
 import { validators } from './validators/upload-photo.validator';
 import { ERole } from '../../common/enums/role.enum';
@@ -43,7 +44,7 @@ export class CarAdController {
   public async createCarAd(
     @Body() dto: CreateCarAdRequestDto,
     @CurrentUser() userData: IUserData,
-  ): Promise<CarAdResponseDto> {
+  ): Promise<CarAdResponseWithOutUserDto> {
     return await this.carAdService.createCarAd(dto, userData);
   }
 

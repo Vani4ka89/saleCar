@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import { ECurrency } from '../../../enums/currency.enum';
 
 export class UpdateCarAdRequestDto {
   @ApiProperty()
@@ -34,4 +35,15 @@ export class UpdateCarAdRequestDto {
   @Max(new Date().getFullYear())
   @IsInt()
   year?: number;
+
+  @ApiProperty({ example: 'USD' })
+  @IsOptional()
+  @IsEnum(ECurrency)
+  @IsString()
+  currency?: ECurrency;
+
+  @ApiProperty({ example: "Ternopil'ska obl." })
+  @IsOptional()
+  @IsString()
+  region?: string;
 }

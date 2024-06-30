@@ -6,6 +6,7 @@ import { ListCarAdRequestDto } from '../models/dto/request/list-car-ad.request.d
 import {
   CarAdResponseDto,
   CarAdResponseManyDto,
+  CarAdResponseWithOutUserDto,
 } from '../models/dto/response/car-ad.response.dto';
 import { UserMapper } from '../../user/services/user.mapper';
 
@@ -14,20 +15,50 @@ config({ path: '.env' });
 const s3Config = getConfig().awsS3;
 
 export class CarAdMapper {
-  public static toResponseDto(entity: CarAdEntity): CarAdResponseDto {
+  public static toResponseWithOutUserDto(
+    entity: CarAdEntity,
+  ): CarAdResponseWithOutUserDto {
     return {
       id: entity.id,
       title: entity.title,
-      description: entity.description,
+      description: entity.description ? entity.description : null,
       brand: entity.brand,
       model: entity.model,
       price: entity.price,
       year: entity.year,
       currency: entity.currency,
+
+      exchangeRate: entity.exchangeRate,
+      region: entity.region,
+      isActive: entity.isActive,
+      views: entity.views,
+
       image: entity.image ? `${s3Config.AWS_S3_URL}${entity.image}` : null,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
+    };
+  }
+
+  public static toResponseDto(entity: CarAdEntity): CarAdResponseDto {
+    return {
+      id: entity.id,
+      title: entity.title,
+      description: entity.description ? entity.description : null,
+      brand: entity.brand,
+      model: entity.model,
+      price: entity.price,
+      year: entity.year,
+      currency: entity.currency,
+
+      exchangeRate: entity.exchangeRate,
+      region: entity.region,
+      isActive: entity.isActive,
+      views: entity.views,
+
+      image: entity.image ? `${s3Config.AWS_S3_URL}${entity.image}` : null,
       user: entity.user ? UserMapper.toResponseDto(entity.user) : null,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
     };
   }
 

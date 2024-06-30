@@ -15,7 +15,7 @@ export class BaseCarAdRequestDto {
   @IsString()
   title: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Very nice car' })
   @IsOptional()
   @IsString()
   description?: string;
@@ -41,12 +41,11 @@ export class BaseCarAdRequestDto {
   @ApiProperty({ example: 'USD' })
   @IsEnum(ECurrency)
   @IsString()
-  currency: string;
+  currency: ECurrency;
 
   @ApiProperty({ example: "Ternopil'ska obl." })
-  @IsOptional()
   @IsString()
-  region?: string;
+  region: string;
 
   @ApiProperty()
   @IsOptional()

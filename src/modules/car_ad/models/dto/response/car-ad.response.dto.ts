@@ -1,6 +1,6 @@
 import { UserResponseDto } from '../../../../user/models/dto/response/user-response.dto';
 
-export class CarAdResponseDto {
+export class CarAdResponseWithOutUserDto {
   id: string;
   title: string;
   description: string;
@@ -9,9 +9,18 @@ export class CarAdResponseDto {
   price: number;
   year: number;
   currency: string;
+
+  exchangeRate: string;
+  region: string;
+  isActive: boolean;
+  views: number;
+
   image: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export class CarAdResponseDto extends CarAdResponseWithOutUserDto {
   user: UserResponseDto;
 }
 

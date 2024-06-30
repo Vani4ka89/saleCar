@@ -2,7 +2,6 @@ import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
 import { ETableName } from './enums/table-name.enum';
 import { BaseModel } from './models/base.model';
 import { UserEntity } from './user.entity';
-import { ECurrency } from '../../modules/car_ad/enums/currency.enum';
 
 @Entity(ETableName.ADVERTISEMENT)
 export class CarAdEntity extends BaseModel {
@@ -24,11 +23,23 @@ export class CarAdEntity extends BaseModel {
   @Column('int')
   year: number;
 
-  @Column('text', { default: ECurrency.USD })
+  @Column('text')
   currency: string;
 
-  @Column('text', { nullable: true })
-  region?: string;
+  @Column('decimal', { nullable: true })
+  priceUSD?: number;
+
+  @Column('decimal', { nullable: true })
+  priceEUR?: number;
+
+  @Column('decimal', { nullable: true })
+  priceUAH?: number;
+
+  @Column('text')
+  exchangeRate: string;
+
+  @Column('text')
+  region: string;
 
   @Column('boolean', { default: false })
   isActive: boolean;
@@ -38,6 +49,9 @@ export class CarAdEntity extends BaseModel {
 
   @Column('int', { default: 0 })
   views: number;
+
+  @Column('int', { default: 0 })
+  editCount: number;
 
   @Column()
   user_id: string;

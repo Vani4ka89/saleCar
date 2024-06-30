@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -17,6 +18,7 @@ import { UpdateCarAdRequestDto } from '../models/dto/request/update-car-ad.reque
 import {
   CarAdResponseDto,
   CarAdResponseManyDto,
+  CarAdResponseWithOutUserDto,
 } from '../models/dto/response/car-ad.response.dto';
 import { CarAdMapper } from './car-ad.mapper';
 import { S3Service } from './s3.service';
@@ -24,15 +26,14 @@ import { EAccountType } from '../../auth/enums/account-type.enum';
 import { CarAdRepository } from '../../repository/services/car-ad.repository';
 import { CarAdStatisticRequestDto } from '../models/dto/request/car-ad-statistic-request.dto';
 import { CarAdStatisticsResponseDto } from '../models/dto/response/car-ad-statistics-response.dto';
-import { CurrencyRepository } from '../../repository/services/currency.repository';
+import { ExchangeRateService } from './exchange-rate.service';
 import { ECurrency } from '../enums/currency.enum';
-import { CurrencyEntity } from '../../../database/entities/currency.entity';
 
 @Injectable()
 export class CarAdService {
   constructor(
     private readonly carAdRepository: CarAdRepository,
-    private readonly currencyRepository: CurrencyRepository,
+    private readonly exchangeRateService: ExchangeRateService,
     private readonly userService: UserService,
     private readonly s3Service: S3Service,
     @InjectEntityManager()
@@ -42,29 +43,10 @@ export class CarAdService {
   public async createCarAd(
     dto: CreateCarAdRequestDto,
     userData: IUserData,
-  ): Promise<CarAdResponseDto> {
+  ): Promise<CarAdResponseWithOutUserDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository =
         em.getRepository(CarAdEntity) ?? this.carAdRepository;
-      const currencyRepository =
-        em.getRepository(CurrencyEntity) ?? this.currencyRepository;
-
-      const USD = await currencyRepository.findOneBy({
-        ccy: ECurrency.USD,
-      });
-      const EUR = await currencyRepository.findOneBy({
-        ccy: ECurrency.EUR,
-      });
-
-      let priceUSD: number;
-      if (dto.currency === ECurrency.UAH) {
-        priceUSD = dto.price / USD.sale;
-      } else if (dto.currency === ECurrency.EUR) {
-        priceUSD = (dto.price * USD.buy) / EUR.sale;
-      } else {
-        priceUSD = dto.price;
-      }
-
       const user = await this.userService.findByIdOrThrow(userData.userId, em);
       if (userData.accountType === EAccountType.BASIC) {
         const userCars = await carAdRepository.count({
@@ -76,14 +58,31 @@ export class CarAdService {
           );
         }
       }
+      const { currency, price } = dto;
+      const rates = await this.exchangeRateService.getRatesMap(em);
+
+      const priceUSD =
+        currency === ECurrency.USD ? price : price / rates[currency];
+      const priceEUR =
+        currency === ECurrency.EUR
+          ? price
+          : (price / rates[currency]) * rates[ECurrency.EUR];
+      const priceUAH =
+        currency === ECurrency.UAH
+          ? price
+          : (price / rates[currency]) * rates[ECurrency.UAH];
+
       const car = await carAdRepository.save(
         carAdRepository.create({
           ...dto,
           user_id: user.id,
-          price: priceUSD,
+          priceUAH,
+          priceUSD,
+          priceEUR,
+          exchangeRate: JSON.stringify(rates),
         }),
       );
-      return CarAdMapper.toResponseDto(car);
+      return CarAdMapper.toResponseWithOutUserDto(car);
     });
   }
 
@@ -115,17 +114,19 @@ export class CarAdService {
 
   public async getCarAdById(carAdId: string): Promise<CarAdResponseDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
-      const carRepository = em.getRepository(CarAdEntity);
-      const car = await carRepository.findOne({
+      const cardARepository = em.getRepository(CarAdEntity);
+      const carAdEntity = await cardARepository.findOne({
         where: { id: carAdId },
         relations: {
           user: true,
         },
       });
-      if (!car) {
+      if (!carAdEntity) {
         throw new UnprocessableEntityException('CarAd not found');
       }
-      return CarAdMapper.toResponseDto(car);
+      carAdEntity.views += 1;
+      await cardARepository.save(carAdEntity);
+      return CarAdMapper.toResponseDto(carAdEntity);
     });
   }
 
@@ -143,6 +144,38 @@ export class CarAdService {
       if (!carAd) {
         throw new NotFoundException('Car advertisement not found');
       }
+      if (carAd.editCount >= 3) {
+        throw new BadRequestException(
+          'Maximum edit advertisement 3 times only',
+        );
+      }
+
+      const { currency, price } = dto;
+      const rates = await this.exchangeRateService.getRatesMap(em);
+
+      if (currency !== undefined) {
+        carAd.currency = currency;
+      }
+      if (price !== undefined) {
+        carAd.price = price;
+      }
+
+      carAd.priceUSD =
+        carAd.currency === ECurrency.USD
+          ? carAd.price
+          : carAd.price / rates[carAd.currency];
+      carAd.priceEUR =
+        carAd.currency === ECurrency.EUR
+          ? carAd.price
+          : (carAd.price / rates[carAd.currency]) * rates[ECurrency.EUR];
+      carAd.priceUAH =
+        carAd.currency === ECurrency.UAH
+          ? carAd.price
+          : (carAd.price / rates[carAd.currency]) * rates[ECurrency.UAH];
+
+      carAd.exchangeRate = JSON.stringify(rates);
+      carAd.editCount += 1;
+
       const editedCarAd = await carAdRepository.save(
         carAdRepository.merge(carAd, dto),
       );
@@ -150,9 +183,38 @@ export class CarAdService {
     });
   }
 
+  async updateExchangeRates(): Promise<void> {
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const carAdRepository =
+        em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const rates = await this.exchangeRateService.getRatesMap(em);
+      const carAds = await carAdRepository.find();
+
+      for (const ad of carAds) {
+        ad.priceUSD =
+          ad.currency === ECurrency.USD
+            ? ad.price
+            : ad.price / rates[ad.currency];
+        ad.priceEUR =
+          ad.currency === ECurrency.EUR
+            ? ad.price
+            : (ad.price / rates[ad.currency]) * rates[ECurrency.EUR];
+        ad.priceUAH =
+          ad.currency === ECurrency.UAH
+            ? ad.price
+            : (ad.price / rates[ad.currency]) * rates[ECurrency.UAH];
+
+        ad.exchangeRate = JSON.stringify(rates);
+
+        await carAdRepository.save(ad);
+      }
+    });
+  }
+
   public async removeCarAdById(carAdId: string): Promise<void> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
-      const carAdRepository = em.getRepository(CarAdEntity);
+      const carAdRepository =
+        em.getRepository(CarAdEntity) ?? this.carAdRepository;
       const carAd = await carAdRepository.findOneBy({
         id: carAdId,
       });
@@ -160,7 +222,7 @@ export class CarAdService {
         throw new UnprocessableEntityException('Car advertisement not found');
       }
       if (carAd.image) {
-        await this.s3Service.deleteFile(carAd.image);
+        await this.s3Service.deleteFile(carAd.image, em);
       }
       await carAdRepository.remove(carAd);
     });
@@ -172,21 +234,23 @@ export class CarAdService {
     userData: IUserData,
   ): Promise<CarAdResponseDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
-      const carRepository = em.getRepository(CarAdEntity);
-      const carAd = await carRepository.findOneBy({
+      const carAdRepository =
+        em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const carAd = await carAdRepository.findOneBy({
         user_id: userData.userId,
         id: carAdId,
       });
       if (carAd.image) {
-        await this.s3Service.deleteFile(carAd.image);
+        await this.s3Service.deleteFile(carAd.image, em);
       }
       const filePath = await this.s3Service.uploadFile(
         photo,
         EFileType.CAR_PHOTO,
         carAd.id,
+        em,
       );
-      const car = await carRepository.save(
-        carRepository.merge(carAd, {
+      const car = await carAdRepository.save(
+        carAdRepository.merge(carAd, {
           image: filePath,
           user_id: userData.userId,
         }),

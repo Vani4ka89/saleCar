@@ -12,6 +12,8 @@ import { v4 } from 'uuid';
 
 import getConfig from '../../../configs/configuration';
 import { EFileType } from '../enums/file-type.enum';
+import { EntityManager } from 'typeorm';
+import { raw } from 'express';
 
 config({ path: '.env' });
 
@@ -35,27 +37,32 @@ export class S3Service {
     file: Express.Multer.File,
     fileType: EFileType,
     itemId: string,
+    em?: EntityManager,
   ): Promise<string> {
-    const filePath = this.buildPath(fileType, itemId, file.originalname);
-    await this.client.send(
-      new PutObjectCommand({
-        Bucket: s3Config.AWS_BUCKET_NAME,
-        Key: filePath,
-        Body: file.buffer,
-        ACL: s3Config.AWS_OBJECT_ACL as ObjectCannedACL,
-        ContentType: file.mimetype,
-      }),
-    );
-    return filePath;
+    return await em.transaction(async () => {
+      const filePath = this.buildPath(fileType, itemId, file.originalname);
+      await this.client.send(
+        new PutObjectCommand({
+          Bucket: s3Config.AWS_BUCKET_NAME,
+          Key: filePath,
+          Body: file.buffer,
+          ACL: s3Config.AWS_OBJECT_ACL as ObjectCannedACL,
+          ContentType: file.mimetype,
+        }),
+      );
+      return filePath;
+    });
   }
 
-  public async deleteFile(filePath: string): Promise<void> {
-    await this.client.send(
-      new DeleteObjectCommand({
-        Bucket: s3Config.AWS_BUCKET_NAME,
-        Key: filePath,
-      }),
-    );
+  public async deleteFile(filePath: string, em?: EntityManager): Promise<void> {
+    return await em.transaction(async () => {
+      await this.client.send(
+        new DeleteObjectCommand({
+          Bucket: s3Config.AWS_BUCKET_NAME,
+          Key: filePath,
+        }),
+      );
+    });
   }
 
   private buildPath(
