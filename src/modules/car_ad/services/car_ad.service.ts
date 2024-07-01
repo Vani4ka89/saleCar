@@ -134,7 +134,7 @@ export class CarAdService {
     userData: IUserData,
     carAdId: string,
     dto: UpdateCarAdRequestDto,
-  ): Promise<CarAdResponseDto> {
+  ): Promise<CarAdResponseWithOutUserDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository = em.getRepository(CarAdEntity);
       const carAd = await carAdRepository.findOneBy({
@@ -179,7 +179,7 @@ export class CarAdService {
       const editedCarAd = await carAdRepository.save(
         carAdRepository.merge(carAd, dto),
       );
-      return CarAdMapper.toResponseDto(editedCarAd);
+      return CarAdMapper.toResponseWithOutUserDto(editedCarAd);
     });
   }
 
@@ -211,6 +211,26 @@ export class CarAdService {
     });
   }
 
+  //TODO
+  public async removeAllNotValidCarAds(): Promise<void> {
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const carAdRepository =
+        em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const carAd = await carAdRepository.find({
+        where: { isActive: false },
+      });
+      if (!carAd) {
+        throw new UnprocessableEntityException('Car advertisements not found');
+      }
+      carAd.map(async (ad) => {
+        if (ad.image) {
+          await this.s3Service.deleteFile(ad.image, em);
+        }
+        await carAdRepository.remove(carAd);
+      });
+    });
+  }
+
   public async removeCarAdById(carAdId: string): Promise<void> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository =
@@ -232,7 +252,7 @@ export class CarAdService {
     photo: Express.Multer.File,
     carAdId: string,
     userData: IUserData,
-  ): Promise<CarAdResponseDto> {
+  ): Promise<CarAdResponseWithOutUserDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository =
         em.getRepository(CarAdEntity) ?? this.carAdRepository;
@@ -255,7 +275,7 @@ export class CarAdService {
           user_id: userData.userId,
         }),
       );
-      return CarAdMapper.toResponseDto(car);
+      return CarAdMapper.toResponseWithOutUserDto(car);
     });
   }
 

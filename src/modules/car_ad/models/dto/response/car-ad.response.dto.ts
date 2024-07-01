@@ -30,5 +30,5 @@ export class CarAdResponseManyDto {
     offset: number;
     total: number;
   };
-  carAds: CarAdResponseDto[];
+  carAds: CarAdResponseWithOutUserDto[];
 }

@@ -13,7 +13,6 @@ import { v4 } from 'uuid';
 import getConfig from '../../../configs/configuration';
 import { EFileType } from '../enums/file-type.enum';
 import { EntityManager } from 'typeorm';
-import { raw } from 'express';
 
 config({ path: '.env' });
 

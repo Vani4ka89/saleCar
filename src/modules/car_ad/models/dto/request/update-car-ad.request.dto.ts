@@ -4,32 +4,32 @@ import { IsEnum, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 import { ECurrency } from '../../../enums/currency.enum';
 
 export class UpdateCarAdRequestDto {
-  @ApiProperty()
+  @ApiProperty({ example: 'Sale my car' })
   @IsOptional()
   @IsString()
   title?: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'Very nice car' })
   @IsOptional()
   @IsString()
   description?: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'honda' })
   @IsOptional()
   @IsString()
   brand?: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'accord' })
   @IsOptional()
   @IsString()
   model?: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 7500 })
   @IsOptional()
   @IsInt()
   price?: number;
 
-  @ApiProperty()
+  @ApiProperty({ example: 2007 })
   @IsOptional()
   @Min(1990)
   @Max(new Date().getFullYear())

@@ -96,8 +96,17 @@ export class CarAdController {
     @Param('id', ParseUUIDPipe) carAdId: string,
     @Body() dto: UpdateCarAdRequestDto,
     @CurrentUser() userData: IUserData,
-  ): Promise<CarAdResponseDto> {
+  ): Promise<CarAdResponseWithOutUserDto> {
     return await this.carAdService.editMyCarAd(userData, carAdId, dto);
+  }
+
+  //TODO
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Delete car-advertisement (admin option)' })
+  @Delete('not-valid')
+  @Roles(ERole.MANAGER)
+  public async removeAllNotValidCarAds(): Promise<void> {
+    await this.carAdService.removeAllNotValidCarAds();
   }
 
   @ApiBearerAuth()
@@ -119,7 +128,7 @@ export class CarAdController {
     @UploadedFile(validators) file: Express.Multer.File,
     @Param('id', ParseUUIDPipe) carAdId: string,
     @CurrentUser() userData: IUserData,
-  ): Promise<CarAdResponseDto> {
+  ): Promise<CarAdResponseWithOutUserDto> {
     return await this.carAdService.uploadPhoto(file, carAdId, userData);
   }
 }
