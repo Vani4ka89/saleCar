@@ -13,7 +13,8 @@ export class CarAdResponseWithOutUserDto {
   exchangeRate: string;
   region: string;
   isActive: boolean;
-  views: number;
+  views?: number;
+  averagePrice?: number;
 
   image: string;
   createdAt: Date;

@@ -40,21 +40,23 @@ export class CarAdRepository extends Repository<CarAdEntity> {
   }
 
   public async getCarAdsStatistics(
-    dto: CarAdStatisticRequestDto,
+    brand: string,
+    model: string,
+    year: number,
     em?: EntityManager,
   ): Promise<CarAdEntity[]> {
     const carRepository = em.getRepository(CarAdEntity) ?? this;
     const qb = carRepository.createQueryBuilder('car');
-    qb.setParameter('brand', dto.brand);
-    qb.setParameter('model', dto.model);
-    qb.setParameter('year', dto.year);
-    if (dto.brand) {
+    qb.setParameter('brand', brand);
+    qb.setParameter('model', model);
+    qb.setParameter('year', year);
+    if (brand) {
       qb.where('car.brand = :brand');
     }
-    if (dto.model) {
+    if (model) {
       qb.where('car.model = :model');
     }
-    if (dto.year) {
+    if (year) {
       qb.where('car.year = :year');
     }
     qb.addOrderBy('car.createdAt');

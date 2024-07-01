@@ -6,6 +6,7 @@ import { RepositoryModule } from './repository/repository.module';
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { CarAdModule } from './car_ad/car_ad.module';
+import { ViewModule } from './view/view.module';
 import configuration from '../configs/configuration';
 
 @Module({
@@ -20,6 +21,7 @@ import configuration from '../configs/configuration';
     AuthModule,
     CarAdModule,
     UserModule,
+    ViewModule,
   ],
 })
 export class AppModule {}

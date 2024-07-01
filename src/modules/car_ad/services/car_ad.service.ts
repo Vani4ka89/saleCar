@@ -28,11 +28,16 @@ import { CarAdStatisticRequestDto } from '../models/dto/request/car-ad-statistic
 import { CarAdStatisticsResponseDto } from '../models/dto/response/car-ad-statistics-response.dto';
 import { ExchangeRateService } from './exchange-rate.service';
 import { ECurrency } from '../enums/currency.enum';
+import { ViewEntity } from '../../../database/entities/view.entity';
+import { ViewService } from '../../view/services/view.service';
+import { ViewRepository } from '../../repository/services/view.repository';
 
 @Injectable()
 export class CarAdService {
   constructor(
     private readonly carAdRepository: CarAdRepository,
+    private readonly viewRepository: ViewRepository,
+    private readonly viewService: ViewService,
     private readonly exchangeRateService: ExchangeRateService,
     private readonly userService: UserService,
     private readonly s3Service: S3Service,
@@ -112,21 +117,47 @@ export class CarAdService {
     });
   }
 
-  public async getCarAdById(carAdId: string): Promise<CarAdResponseDto> {
+  public async getOneCarAd(
+    carAdId: string,
+    userData: IUserData,
+  ): Promise<CarAdResponseDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
-      const cardARepository = em.getRepository(CarAdEntity);
-      const carAdEntity = await cardARepository.findOne({
+      const cardARepository =
+        em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const carAd = await cardARepository.findOne({
         where: { id: carAdId },
         relations: {
           user: true,
         },
       });
-      if (!carAdEntity) {
+      if (!carAd) {
         throw new UnprocessableEntityException('CarAd not found');
       }
-      carAdEntity.views += 1;
-      await cardARepository.save(carAdEntity);
-      return CarAdMapper.toResponseDto(carAdEntity);
+      const existingView = await this.viewService.findCarAdView(
+        userData.userId,
+        carAd.id,
+      );
+
+      if (!existingView) {
+        await this.viewService.createCarAdView(userData.userId, carAd.id, 1);
+      }
+      let views = 0;
+      let averagePrice = 0;
+      if (userData.accountType === EAccountType.PREMIUM) {
+        views = await this.viewRepository.count({
+          where: { carAd_id: carAd.id },
+        });
+        const carAdEntities = await this.carAdRepository.getCarAdsStatistics(
+          carAd.brand,
+          carAd.model,
+          carAd.price,
+          em,
+        );
+        averagePrice =
+          carAdEntities.reduce((acc, ad) => acc + ad.price, 0) /
+          carAdEntities.length;
+      }
+      return CarAdMapper.toResponseDto(carAd, views, averagePrice);
     });
   }
 
@@ -279,25 +310,28 @@ export class CarAdService {
     });
   }
 
-  public async getCarAdStatistics(
-    dto: CarAdStatisticRequestDto,
-    userData: IUserData,
-  ): Promise<CarAdStatisticsResponseDto> {
-    return await this.entityManager.transaction(async (em: EntityManager) => {
-      const user = await this.userService.findByIdOrThrow(userData.userId, em);
-      if (user.accountType !== EAccountType.PREMIUM) {
-        throw new ForbiddenException(
-          'Access denied. Only premium users can access statistics',
-        );
-      }
-      const userAds = await this.carAdRepository.getCarAdsStatistics(dto, em);
-      const averagePrice =
-        userAds.reduce((acc, ad) => acc + ad.price, 0) / userAds.length;
-      const totalViews = userAds.reduce((acc, ad) => acc + ad.views, 0);
-      return {
-        averagePrice,
-        totalViews,
-      };
-    });
-  }
+  // public async getCarAdStatistics(
+  //   dto: CarAdStatisticRequestDto,
+  //   userData: IUserData,
+  // ): Promise<CarAdStatisticsResponseDto> {
+  //   return await this.entityManager.transaction(async (em: EntityManager) => {
+  //     const user = await this.userService.findByIdOrThrow(userData.userId, em);
+  //     if (user.accountType !== EAccountType.PREMIUM) {
+  //       throw new ForbiddenException(
+  //         'Access denied. Only premium users can access statistics',
+  //       );
+  //     }
+  //     const userAds = await this.carAdRepository.getCarAdsStatistics(dto, em);
+  //     const averagePrice =
+  //       userAds.reduce((acc, ad) => acc + ad.price, 0) / userAds.length;
+  //     // const totalViews = userAds.map((ad) => {
+  //     //   ad.views.reduce((acc, a) => acc + a.value, 0);
+  //     // });
+  //     const totalViews = 0;
+  //     return {
+  //       averagePrice,
+  //       totalViews,
+  //     };
+  //   });
+  // }
 }

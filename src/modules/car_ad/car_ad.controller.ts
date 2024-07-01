@@ -68,24 +68,25 @@ export class CarAdController {
     return await this.carAdService.getAllMyCarAds(query, userData);
   }
 
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Get statistics' })
-  @Post('statistics')
-  @Roles(ERole.SELLER)
-  public async getCarAdStatistics(
-    @Body() dto: CarAdStatisticRequestDto,
-    @CurrentUser() userData: IUserData,
-  ): Promise<CarAdStatisticsResponseDto> {
-    return await this.carAdService.getCarAdStatistics(dto, userData);
-  }
+  // @ApiBearerAuth()
+  // @ApiOperation({ summary: 'Get statistics' })
+  // @Post('statistics')
+  // @Roles(ERole.SELLER)
+  // public async getCarAdStatistics(
+  //   @Body() dto: CarAdStatisticRequestDto,
+  //   @CurrentUser() userData: IUserData,
+  // ): Promise<CarAdStatisticsResponseDto> {
+  //   return await this.carAdService.getCarAdStatistics(dto, userData);
+  // }
 
-  @SkipAuth()
-  @ApiOperation({ summary: 'Get one car-advertisement (public)' })
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Get one car-advertisement' })
   @Get(':id')
-  public async getCarAdById(
+  public async getOneCarAd(
     @Param('id', ParseUUIDPipe) carAdId: string,
+    @CurrentUser() userData: IUserData,
   ): Promise<CarAdResponseDto> {
-    return await this.carAdService.getCarAdById(carAdId);
+    return await this.carAdService.getOneCarAd(carAdId, userData);
   }
 
   @ApiBearerAuth()
