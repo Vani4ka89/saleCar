@@ -1,7 +1,8 @@
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, OneToMany } from 'typeorm';
 import { ETableName } from './enums/table-name.enum';
 import { BaseModel } from './models/base.model';
 import { UserEntity } from './user.entity';
+import { ViewEntity } from './view.entity';
 
 @Entity(ETableName.ADVERTISEMENT)
 export class CarAdEntity extends BaseModel {
@@ -48,10 +49,10 @@ export class CarAdEntity extends BaseModel {
   image?: string;
 
   @Column('int', { default: 0 })
-  views: number;
-
-  @Column('int', { default: 0 })
   editCount: number;
+
+  @OneToMany(() => ViewEntity, (entity) => entity.carAd)
+  views?: ViewEntity[];
 
   @Column()
   user_id: string;

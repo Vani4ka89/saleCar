@@ -6,6 +6,7 @@ import { MessageEntity } from './message.entity';
 import { RefreshTokenEntity } from './refresh-token.entity';
 import { EAccountType } from '../../modules/auth/enums/account-type.enum';
 import { ERole } from '../../common/enums/role.enum';
+import { ViewEntity } from './view.entity';
 
 @Entity(ETableName.USER)
 export class UserEntity extends BaseModel {
@@ -32,6 +33,9 @@ export class UserEntity extends BaseModel {
 
   @Column('text', { nullable: true })
   banReason?: string;
+
+  @OneToMany(() => ViewEntity, (entity) => entity.user)
+  views?: ViewEntity[];
 
   @OneToMany(() => CarAdEntity, (entity) => entity.user)
   ads?: CarAdEntity[];

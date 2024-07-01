@@ -6,4 +6,5 @@ export enum ETableName {
   REFRESH_TOKEN = 'refresh-token',
   ROLE = 'role',
   USER = 'user',
+  VIEW = 'view',
 }
