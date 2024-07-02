@@ -23,6 +23,7 @@ export default (): ConfigType => ({
   },
 
   jwt: {
+    secretSalt: parseInt(process.env.SECRET_SALT, 10),
     accessTokenSecret: process.env.ACCESS_TOKEN_SECRET,
     accessTokenExpire: parseInt(process.env.ACCESS_TOKEN_EXPIRE, 10),
     refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET,

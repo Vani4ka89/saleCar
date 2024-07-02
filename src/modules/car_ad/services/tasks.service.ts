@@ -6,7 +6,7 @@ import { CarAdService } from './car_ad.service';
 export class TasksService {
   constructor(private readonly carAdService: CarAdService) {}
 
-  @Cron('0 4 * * *')
+  @Cron('0 1 * * *')
   public async handleCron() {
     await this.carAdService.updateExchangeRates();
   }

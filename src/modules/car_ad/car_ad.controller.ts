@@ -29,8 +29,6 @@ import { validators } from './validators/upload-photo.validator';
 import { ERole } from '../../common/enums/role.enum';
 import { CarAdService } from './services/car_ad.service';
 import { Roles } from '../../common/decorators/roles.decorator';
-import { CarAdStatisticRequestDto } from './models/dto/request/car-ad-statistic-request.dto';
-import { CarAdStatisticsResponseDto } from './models/dto/response/car-ad-statistics-response.dto';
 
 @ApiTags('CarAd')
 @Controller('car-ads')
@@ -99,15 +97,6 @@ export class CarAdController {
     @CurrentUser() userData: IUserData,
   ): Promise<CarAdResponseWithOutUserDto> {
     return await this.carAdService.editMyCarAd(userData, carAdId, dto);
-  }
-
-  //TODO
-  @ApiBearerAuth()
-  @ApiOperation({ summary: 'Delete car-advertisement (admin option)' })
-  @Delete('not-valid')
-  @Roles(ERole.MANAGER)
-  public async removeAllNotValidCarAds(): Promise<void> {
-    await this.carAdService.removeAllNotValidCarAds();
   }
 
   @ApiBearerAuth()

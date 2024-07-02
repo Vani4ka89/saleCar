@@ -65,17 +65,18 @@ export class CarAdService {
       }
       const { currency, price } = dto;
       const rates = await this.exchangeRateService.getRatesMap(em);
-
       const priceUSD =
-        currency === ECurrency.USD ? price : price / rates[currency];
+        currency === ECurrency.USD
+          ? price
+          : (price / rates[ECurrency.USD]) * rates[currency] ||
+            price / rates[ECurrency.USD];
       const priceEUR =
         currency === ECurrency.EUR
           ? price
-          : (price / rates[currency]) * rates[ECurrency.EUR];
+          : (price / rates[ECurrency.EUR]) * rates[currency] ||
+            price / rates[ECurrency.EUR];
       const priceUAH =
-        currency === ECurrency.UAH
-          ? price
-          : (price / rates[currency]) * rates[ECurrency.UAH];
+        currency === ECurrency.UAH ? price : price * rates[currency];
 
       const car = await carAdRepository.save(
         carAdRepository.create({
@@ -136,21 +137,26 @@ export class CarAdService {
       const existingView = await this.viewService.findCarAdView(
         userData.userId,
         carAd.id,
+        em,
       );
 
       if (!existingView) {
-        await this.viewService.createCarAdView(userData.userId, carAd.id, 1);
+        await this.viewService.createCarAdView(
+          userData.userId,
+          carAd.id,
+          1,
+          em,
+        );
       }
-      let views = 0;
-      let averagePrice = 0;
+      let views: number = 0;
+      let averagePrice: number = 0;
       if (userData.accountType === EAccountType.PREMIUM) {
-        views = await this.viewRepository.count({
-          where: { carAd_id: carAd.id },
-        });
+        views = await this.viewService.countViews(carAd.id, em);
         const carAdEntities = await this.carAdRepository.getCarAdsStatistics(
           carAd.brand,
           carAd.model,
           carAd.price,
+          carAd.region,
           em,
         );
         averagePrice =
@@ -167,7 +173,8 @@ export class CarAdService {
     dto: UpdateCarAdRequestDto,
   ): Promise<CarAdResponseWithOutUserDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
-      const carAdRepository = em.getRepository(CarAdEntity);
+      const carAdRepository =
+        em.getRepository(CarAdEntity) ?? this.carAdRepository;
       const carAd = await carAdRepository.findOneBy({
         id: carAdId,
         user_id: userData.userId,
@@ -176,6 +183,7 @@ export class CarAdService {
         throw new NotFoundException('Car advertisement not found');
       }
       if (carAd.editCount >= 3) {
+        carAd.isActive = false;
         throw new BadRequestException(
           'Maximum edit advertisement 3 times only',
         );
@@ -191,18 +199,33 @@ export class CarAdService {
         carAd.price = price;
       }
 
+      // carAd.priceUSD =
+      //   carAd.currency === ECurrency.USD
+      //     ? carAd.price
+      //     : carAd.price / rates[carAd.currency];
+      // carAd.priceEUR =
+      //   carAd.currency === ECurrency.EUR
+      //     ? carAd.price
+      //     : (carAd.price / rates[carAd.currency]) * rates[ECurrency.EUR];
+      // carAd.priceUAH =
+      //   carAd.currency === ECurrency.UAH
+      //     ? carAd.price
+      //     : (carAd.price / rates[carAd.currency]) * rates[ECurrency.UAH];
+
       carAd.priceUSD =
         carAd.currency === ECurrency.USD
           ? carAd.price
-          : carAd.price / rates[carAd.currency];
+          : (carAd.price / rates[ECurrency.USD]) * rates[carAd.currency] ||
+            carAd.price / rates[ECurrency.USD];
       carAd.priceEUR =
         carAd.currency === ECurrency.EUR
           ? carAd.price
-          : (carAd.price / rates[carAd.currency]) * rates[ECurrency.EUR];
+          : (carAd.price / rates[ECurrency.EUR]) * rates[carAd.currency] ||
+            carAd.price / rates[ECurrency.EUR];
       carAd.priceUAH =
         carAd.currency === ECurrency.UAH
           ? carAd.price
-          : (carAd.price / rates[carAd.currency]) * rates[ECurrency.UAH];
+          : carAd.price * rates[carAd.currency];
 
       carAd.exchangeRate = JSON.stringify(rates);
       carAd.editCount += 1;
@@ -214,51 +237,47 @@ export class CarAdService {
     });
   }
 
-  async updateExchangeRates(): Promise<void> {
+  public async updateExchangeRates(): Promise<void> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository =
         em.getRepository(CarAdEntity) ?? this.carAdRepository;
       const rates = await this.exchangeRateService.getRatesMap(em);
       const carAds = await carAdRepository.find();
 
-      for (const ad of carAds) {
+      const updatedCarAds = carAds.map((ad) => {
         ad.priceUSD =
           ad.currency === ECurrency.USD
             ? ad.price
-            : ad.price / rates[ad.currency];
+            : (ad.price / rates[ECurrency.USD]) * rates[ad.currency] ||
+              ad.price / rates[ECurrency.USD];
         ad.priceEUR =
           ad.currency === ECurrency.EUR
             ? ad.price
-            : (ad.price / rates[ad.currency]) * rates[ECurrency.EUR];
+            : (ad.price / rates[ECurrency.EUR]) * rates[ad.currency] ||
+              ad.price / rates[ECurrency.EUR];
         ad.priceUAH =
           ad.currency === ECurrency.UAH
             ? ad.price
-            : (ad.price / rates[ad.currency]) * rates[ECurrency.UAH];
+            : ad.price * rates[ad.currency];
+
+        // ad.priceUSD =
+        //   ad.currency === ECurrency.USD
+        //     ? ad.price
+        //     : ad.price / rates[ad.currency];
+        // ad.priceEUR =
+        //   ad.currency === ECurrency.EUR
+        //     ? ad.price
+        //     : (ad.price / rates[ad.currency]) * rates[ECurrency.EUR];
+        // ad.priceUAH =
+        //   ad.currency === ECurrency.UAH
+        //     ? ad.price
+        //     : (ad.price / rates[ad.currency]) * rates[ECurrency.UAH];
 
         ad.exchangeRate = JSON.stringify(rates);
 
-        await carAdRepository.save(ad);
-      }
-    });
-  }
-
-  //TODO
-  public async removeAllNotValidCarAds(): Promise<void> {
-    return await this.entityManager.transaction(async (em: EntityManager) => {
-      const carAdRepository =
-        em.getRepository(CarAdEntity) ?? this.carAdRepository;
-      const carAd = await carAdRepository.find({
-        where: { isActive: false },
+        return carAdRepository.save(ad);
       });
-      if (!carAd) {
-        throw new UnprocessableEntityException('Car advertisements not found');
-      }
-      carAd.map(async (ad) => {
-        if (ad.image) {
-          await this.s3Service.deleteFile(ad.image, em);
-        }
-        await carAdRepository.remove(carAd);
-      });
+      await Promise.all(updatedCarAds);
     });
   }
 

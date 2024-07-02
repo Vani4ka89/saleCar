@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ViewRepository } from '../../repository/services/view.repository';
 import { ViewEntity } from '../../../database/entities/view.entity';
+import { EntityManager } from 'typeorm';
 
 @Injectable()
 export class ViewService {
@@ -10,16 +11,28 @@ export class ViewService {
     user_id: string,
     carAd_id: string,
     value: number,
+    em?: EntityManager,
   ): Promise<ViewEntity> {
-    return await this.viewRepository.save(
-      this.viewRepository.create({ user_id, carAd_id, value }),
+    const viewRepository = em.getRepository(ViewEntity) ?? this.viewRepository;
+    return await viewRepository.save(
+      viewRepository.create({ user_id, carAd_id, value }),
     );
   }
 
   public async findCarAdView(
     user_id: string,
     carAd_id: string,
+    em?: EntityManager,
   ): Promise<ViewEntity> {
-    return await this.viewRepository.findOneBy({ user_id, carAd_id });
+    const viewRepository = em.getRepository(ViewEntity) ?? this.viewRepository;
+    return await viewRepository.findOneBy({ user_id, carAd_id });
+  }
+
+  public async countViews(
+    carAd_id: string,
+    em?: EntityManager,
+  ): Promise<number> {
+    const viewRepository = em.getRepository(ViewEntity) ?? this.viewRepository;
+    return await viewRepository.count({ where: { carAd_id } });
   }
 }

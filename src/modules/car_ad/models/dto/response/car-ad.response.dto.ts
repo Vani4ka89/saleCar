@@ -1,4 +1,5 @@
 import { UserResponseDto } from '../../../../user/models/dto/response/user-response.dto';
+import { ECurrency } from '../../../enums/currency.enum';
 
 export class CarAdResponseWithOutUserDto {
   id: string;
@@ -9,6 +10,10 @@ export class CarAdResponseWithOutUserDto {
   price: number;
   year: number;
   currency: string;
+
+  priceUSD: number;
+  priceEUR: number;
+  priceUAH: number;
 
   exchangeRate: string;
   region: string;

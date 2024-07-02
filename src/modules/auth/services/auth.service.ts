@@ -18,10 +18,15 @@ import { InjectEntityManager } from '@nestjs/typeorm';
 import { EntityManager } from 'typeorm';
 import { UserEntity } from '../../../database/entities/user.entity';
 import { RefreshTokenEntity } from '../../../database/entities/refresh-token.entity';
+import { ConfigType, JwtConfig } from '../../../configs/config.type';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
+  private readonly jwtConfig: JwtConfig;
+
   constructor(
+    private readonly configService: ConfigService<ConfigType>,
     private readonly userRepository: UserRepository,
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly authCacheService: AuthCacheService,
@@ -29,15 +34,24 @@ export class AuthService {
     private readonly tokenService: TokenService,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-  ) {}
+  ) {
+    this.jwtConfig = this.configService.get<JwtConfig>('jwt');
+  }
 
   public async signUp(dto: AuthRequestDto): Promise<SignUpResponseDto> {
-    await this.userService.isEmailUniqueOrThrow(dto.email);
-    const password = await bcrypt.hash(dto.password, 8);
-    const user = await this.userRepository.save(
-      this.userRepository.create({ ...dto, password }),
-    );
-    return AuthMapper.toSignUpResponseDto(user);
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const userRepository =
+        em.getRepository(UserEntity) ?? this.userRepository;
+      await this.userService.isEmailUniqueOrThrow(dto.email, em);
+      const password = await bcrypt.hash(
+        dto.password,
+        this.jwtConfig.secretSalt,
+      );
+      const user = await userRepository.save(
+        userRepository.create({ ...dto, password }),
+      );
+      return AuthMapper.toSignUpResponseDto(user);
+    });
   }
 
   public async signIn(dto: AuthRequestDto): Promise<SignInResponseDto> {
@@ -107,7 +121,7 @@ export class AuthService {
   private async saveAuthTokens(
     userId: string,
     tokens: ITokenPair,
-    em: EntityManager,
+    em?: EntityManager,
   ): Promise<void> {
     await Promise.all([
       this.refreshTokenRepository.saveToken(userId, tokens.refreshToken, em),
@@ -117,7 +131,7 @@ export class AuthService {
 
   public async removeRefreshTokens(
     userId: string,
-    em: EntityManager,
+    em?: EntityManager,
   ): Promise<void> {
     const refreshTokenRepository =
       em.getRepository(RefreshTokenEntity) ?? this.refreshTokenRepository;

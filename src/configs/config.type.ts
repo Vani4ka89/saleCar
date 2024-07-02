@@ -26,6 +26,7 @@ export type RedisConfig = {
 };
 
 export type JwtConfig = {
+  secretSalt: string | number;
   accessTokenSecret: string;
   accessTokenExpire: number;
   refreshTokenSecret: string;

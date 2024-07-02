@@ -3,6 +3,7 @@ import { ETableName } from './enums/table-name.enum';
 import { BaseModel } from './models/base.model';
 import { UserEntity } from './user.entity';
 import { ViewEntity } from './view.entity';
+import { ECurrency } from '../../modules/car_ad/enums/currency.enum';
 
 @Entity(ETableName.ADVERTISEMENT)
 export class CarAdEntity extends BaseModel {
@@ -24,8 +25,8 @@ export class CarAdEntity extends BaseModel {
   @Column('int')
   year: number;
 
-  @Column('text')
-  currency: string;
+  @Column('enum', { enum: ECurrency })
+  currency: ECurrency;
 
   @Column('decimal', { nullable: true })
   priceUSD?: number;

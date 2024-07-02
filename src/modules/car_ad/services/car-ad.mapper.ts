@@ -28,6 +28,10 @@ export class CarAdMapper {
       year: entity.year,
       currency: entity.currency,
 
+      priceUSD: entity.priceUSD,
+      priceEUR: entity.priceEUR,
+      priceUAH: entity.priceUAH,
+
       exchangeRate: entity.exchangeRate,
       region: entity.region,
       isActive: entity.isActive,
@@ -53,10 +57,14 @@ export class CarAdMapper {
       year: entity.year,
       currency: entity.currency,
 
+      priceUSD: entity.priceUSD,
+      priceEUR: entity.priceEUR,
+      priceUAH: entity.priceUAH,
+
       exchangeRate: entity.exchangeRate,
       region: entity.region,
       isActive: entity.isActive,
-      views,
+      views: views ? views : 0,
       averagePrice: averagePrice ? averagePrice : 0,
 
       image: entity.image ? `${s3Config.AWS_S3_URL}${entity.image}` : null,

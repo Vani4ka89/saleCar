@@ -4,7 +4,6 @@ import { DataSource, EntityManager, Repository } from 'typeorm';
 import { CarAdEntity } from '../../../database/entities/car-ad.entity';
 import { IUserData } from '../../auth/types/user-data.type';
 import { ListCarAdRequestDto } from '../../car_ad/models/dto/request/list-car-ad.request.dto';
-import { CarAdStatisticRequestDto } from '../../car_ad/models/dto/request/car-ad-statistic-request.dto';
 
 @Injectable()
 export class CarAdRepository extends Repository<CarAdEntity> {
@@ -43,6 +42,7 @@ export class CarAdRepository extends Repository<CarAdEntity> {
     brand: string,
     model: string,
     year: number,
+    region: string,
     em?: EntityManager,
   ): Promise<CarAdEntity[]> {
     const carRepository = em.getRepository(CarAdEntity) ?? this;
@@ -50,6 +50,7 @@ export class CarAdRepository extends Repository<CarAdEntity> {
     qb.setParameter('brand', brand);
     qb.setParameter('model', model);
     qb.setParameter('year', year);
+    qb.setParameter('region', region);
     if (brand) {
       qb.where('car.brand = :brand');
     }
@@ -59,6 +60,7 @@ export class CarAdRepository extends Repository<CarAdEntity> {
     if (year) {
       qb.where('car.year = :year');
     }
+    qb.where('car.region = :region');
     qb.addOrderBy('car.createdAt');
     return await qb.getMany();
   }

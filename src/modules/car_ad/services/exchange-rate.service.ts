@@ -24,7 +24,7 @@ export class ExchangeRateService {
       const ratesMap: { [key: string]: number } = {};
 
       rates.forEach((rate) => {
-        ratesMap[rate.ccy] = parseFloat(rate.buy);
+        ratesMap[rate.ccy] = parseFloat(rate.sale);
       });
       return ratesMap;
     });

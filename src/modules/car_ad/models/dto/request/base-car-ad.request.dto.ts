@@ -9,6 +9,7 @@ import {
   Min,
 } from 'class-validator';
 import { ECurrency } from '../../../enums/currency.enum';
+import { ERegion } from '../../../enums/region.enum';
 
 export class BaseCarAdRequestDto {
   @ApiProperty({ example: 'Sale my car' })
@@ -43,9 +44,10 @@ export class BaseCarAdRequestDto {
   @IsString()
   currency: ECurrency;
 
-  @ApiProperty({ example: "Ternopil'ska obl." })
+  @ApiProperty({ example: 'Тернопільська обл.' })
+  @IsEnum(ERegion)
   @IsString()
-  region: string;
+  region: ERegion;
 
   @ApiProperty()
   @IsOptional()

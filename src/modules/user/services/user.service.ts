@@ -143,8 +143,12 @@ export class UserService {
     });
   }
 
-  public async isEmailUniqueOrThrow(email: string): Promise<void> {
-    const user = await this.userRepository.findOneBy({ email });
+  public async isEmailUniqueOrThrow(
+    email: string,
+    em?: EntityManager,
+  ): Promise<void> {
+    const userRepository = em.getRepository(UserEntity) ?? this.userRepository;
+    const user = await userRepository.findOneBy({ email });
     if (user) {
       throw new ConflictException('User already exists');
     }
