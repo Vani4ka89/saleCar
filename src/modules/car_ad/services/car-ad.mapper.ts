@@ -44,7 +44,10 @@ export class CarAdMapper {
 
   public static toResponseDto(
     entity: CarAdEntity,
-    views?: number,
+    totalViews?: number,
+    dailyViews?: number,
+    weeklyViews?: number,
+    monthlyViews?: number,
     averagePrice?: number,
   ): CarAdResponseDto {
     return {
@@ -64,7 +67,10 @@ export class CarAdMapper {
       exchangeRate: entity.exchangeRate,
       region: entity.region,
       isActive: entity.isActive,
-      views: views ? views : 0,
+      totalViews: totalViews ? totalViews : 0,
+      dailyViews: dailyViews ? dailyViews : 0,
+      weeklyViews: weeklyViews ? weeklyViews : 0,
+      monthlyViews: monthlyViews ? monthlyViews : 0,
       averagePrice: averagePrice ? averagePrice : 0,
 
       image: entity.image ? `${s3Config.AWS_S3_URL}${entity.image}` : null,

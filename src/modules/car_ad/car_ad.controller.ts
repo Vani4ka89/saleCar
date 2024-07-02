@@ -79,12 +79,12 @@ export class CarAdController {
 
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get one car-advertisement' })
-  @Get(':id')
-  public async getOneCarAd(
+  @Get(':id/info')
+  public async getCarAdInfo(
     @Param('id', ParseUUIDPipe) carAdId: string,
     @CurrentUser() userData: IUserData,
   ): Promise<CarAdResponseDto> {
-    return await this.carAdService.getOneCarAd(carAdId, userData);
+    return await this.carAdService.getCarAdInfo(carAdId, userData);
   }
 
   @ApiBearerAuth()

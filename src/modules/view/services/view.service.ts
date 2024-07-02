@@ -10,12 +10,11 @@ export class ViewService {
   public async createCarAdView(
     user_id: string,
     carAd_id: string,
-    value: number,
     em?: EntityManager,
   ): Promise<ViewEntity> {
     const viewRepository = em.getRepository(ViewEntity) ?? this.viewRepository;
     return await viewRepository.save(
-      viewRepository.create({ user_id, carAd_id, value }),
+      viewRepository.create({ user_id, carAd_id, viewDate: new Date() }),
     );
   }
 

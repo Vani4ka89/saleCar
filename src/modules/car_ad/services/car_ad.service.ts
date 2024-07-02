@@ -118,7 +118,7 @@ export class CarAdService {
     });
   }
 
-  public async getOneCarAd(
+  public async getCarAdInfo(
     carAdId: string,
     userData: IUserData,
   ): Promise<CarAdResponseDto> {
@@ -134,24 +134,17 @@ export class CarAdService {
       if (!carAd) {
         throw new UnprocessableEntityException('CarAd not found');
       }
-      const existingView = await this.viewService.findCarAdView(
-        userData.userId,
-        carAd.id,
-        em,
-      );
-
-      if (!existingView) {
-        await this.viewService.createCarAdView(
-          userData.userId,
-          carAd.id,
-          1,
-          em,
-        );
-      }
-      let views: number = 0;
-      let averagePrice: number = 0;
+      let totalViews: number;
+      let dailyViews: number;
+      let weeklyViews: number;
+      let monthlyViews: number;
+      let averagePrice: number;
       if (userData.accountType === EAccountType.PREMIUM) {
-        views = await this.viewService.countViews(carAd.id, em);
+        dailyViews = await this.viewRepository.getDailyViews(carAd.id, em);
+        weeklyViews = await this.viewRepository.getWeeklyViews(carAd.id, em);
+        monthlyViews = await this.viewRepository.getMonthlyViews(carAd.id, em);
+        totalViews = await this.viewService.countViews(carAd.id, em);
+
         const carAdEntities = await this.carAdRepository.getCarAdsStatistics(
           carAd.brand,
           carAd.model,
@@ -163,7 +156,23 @@ export class CarAdService {
           carAdEntities.reduce((acc, ad) => acc + ad.price, 0) /
           carAdEntities.length;
       }
-      return CarAdMapper.toResponseDto(carAd, views, averagePrice);
+      const existingView = await this.viewService.findCarAdView(
+        userData.userId,
+        carAd.id,
+        em,
+      );
+
+      if (!existingView) {
+        await this.viewService.createCarAdView(userData.userId, carAd.id, em);
+      }
+      return CarAdMapper.toResponseDto(
+        carAd,
+        totalViews,
+        dailyViews,
+        weeklyViews,
+        monthlyViews,
+        averagePrice,
+      );
     });
   }
 

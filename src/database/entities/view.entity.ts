@@ -6,8 +6,8 @@ import { CarAdEntity } from './car-ad.entity';
 
 @Entity(ETableName.VIEW)
 export class ViewEntity extends BaseModel {
-  @Column('int', { default: 0 })
-  value: number;
+  @Column()
+  viewDate: Date;
 
   @Column()
   user_id: string;
