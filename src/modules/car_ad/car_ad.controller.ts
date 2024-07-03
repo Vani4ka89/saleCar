@@ -23,7 +23,6 @@ import { UpdateCarAdRequestDto } from './models/dto/request/update-car-ad.reques
 import {
   CarAdResponseDto,
   CarAdResponseManyDto,
-  CarAdResponseWithOutUserDto,
 } from './models/dto/response/car-ad.response.dto';
 import { validators } from './validators/upload-photo.validator';
 import { ERole } from '../../common/enums/role.enum';
@@ -42,7 +41,7 @@ export class CarAdController {
   public async createCarAd(
     @Body() dto: CreateCarAdRequestDto,
     @CurrentUser() userData: IUserData,
-  ): Promise<CarAdResponseWithOutUserDto> {
+  ): Promise<CarAdResponseDto> {
     return await this.carAdService.createCarAd(dto, userData);
   }
 
@@ -95,7 +94,7 @@ export class CarAdController {
     @Param('id', ParseUUIDPipe) carAdId: string,
     @Body() dto: UpdateCarAdRequestDto,
     @CurrentUser() userData: IUserData,
-  ): Promise<CarAdResponseWithOutUserDto> {
+  ): Promise<CarAdResponseDto> {
     return await this.carAdService.editMyCarAd(userData, carAdId, dto);
   }
 
@@ -118,7 +117,7 @@ export class CarAdController {
     @UploadedFile(validators) file: Express.Multer.File,
     @Param('id', ParseUUIDPipe) carAdId: string,
     @CurrentUser() userData: IUserData,
-  ): Promise<CarAdResponseWithOutUserDto> {
+  ): Promise<CarAdResponseDto> {
     return await this.carAdService.uploadPhoto(file, carAdId, userData);
   }
 }

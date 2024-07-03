@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { IExchangeRate } from '../types/exchange-rate.type';
 import { firstValueFrom } from 'rxjs';
@@ -10,10 +10,16 @@ export class ExchangeRateService {
   constructor(private readonly httpService: HttpService) {}
 
   public async getExchangeRates(em?: EntityManager): Promise<IExchangeRate[]> {
-    return await em.transaction(async () => {
-      const { data } = await firstValueFrom(this.httpService.get(apiUrl));
-      return data;
-    });
+    try {
+      return await em.transaction(async () => {
+        const { data } = await firstValueFrom(this.httpService.get(apiUrl));
+        return data;
+      });
+    } catch (err) {
+      throw new InternalServerErrorException(
+        'API privatbank error (no connection to server)',
+      );
+    }
   }
 
   public async getRatesMap(

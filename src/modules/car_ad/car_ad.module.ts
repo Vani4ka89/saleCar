@@ -10,9 +10,10 @@ import { RolesGuard } from '../../common/guards/roles.guard';
 import { ExchangeRateService } from './services/exchange-rate.service';
 import { HttpModule } from '@nestjs/axios';
 import { ViewModule } from '../view/view.module';
+import { EmailModule } from '../email/email.module';
 
 @Module({
-  imports: [AuthModule, HttpModule, UserModule, ViewModule],
+  imports: [AuthModule, EmailModule, HttpModule, UserModule, ViewModule],
   controllers: [CarAdController],
   providers: [
     { provide: APP_GUARD, useClass: RolesGuard },

@@ -18,7 +18,6 @@ import { UpdateCarAdRequestDto } from '../models/dto/request/update-car-ad.reque
 import {
   CarAdResponseDto,
   CarAdResponseManyDto,
-  CarAdResponseWithOutUserDto,
 } from '../models/dto/response/car-ad.response.dto';
 import { CarAdMapper } from './car-ad.mapper';
 import { S3Service } from './s3.service';
@@ -31,6 +30,7 @@ import { ECurrency } from '../enums/currency.enum';
 import { ViewEntity } from '../../../database/entities/view.entity';
 import { ViewService } from '../../view/services/view.service';
 import { ViewRepository } from '../../repository/services/view.repository';
+import { EmailService } from '../../email/services/email.service';
 
 @Injectable()
 export class CarAdService {
@@ -39,6 +39,7 @@ export class CarAdService {
     private readonly viewRepository: ViewRepository,
     private readonly viewService: ViewService,
     private readonly exchangeRateService: ExchangeRateService,
+    private readonly emailService: EmailService,
     private readonly userService: UserService,
     private readonly s3Service: S3Service,
     @InjectEntityManager()
@@ -48,7 +49,7 @@ export class CarAdService {
   public async createCarAd(
     dto: CreateCarAdRequestDto,
     userData: IUserData,
-  ): Promise<CarAdResponseWithOutUserDto> {
+  ): Promise<CarAdResponseDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository =
         em.getRepository(CarAdEntity) ?? this.carAdRepository;
@@ -86,9 +87,10 @@ export class CarAdService {
           priceUSD,
           priceEUR,
           exchangeRate: JSON.stringify(rates),
+          isActive: true,
         }),
       );
-      return CarAdMapper.toResponseWithOutUserDto(car);
+      return CarAdMapper.toResponseDto(car);
     });
   }
 
@@ -139,6 +141,7 @@ export class CarAdService {
       let weeklyViews: number;
       let monthlyViews: number;
       let averagePrice: number;
+      let averageRegionPrice: number;
       if (userData.accountType === EAccountType.PREMIUM) {
         dailyViews = await this.viewRepository.getDailyViews(carAd.id, em);
         weeklyViews = await this.viewRepository.getWeeklyViews(carAd.id, em);
@@ -149,10 +152,21 @@ export class CarAdService {
           carAd.brand,
           carAd.model,
           carAd.price,
+          em,
+        );
+
+        const entities = await this.carAdRepository.getCarAdsRegionStatistics(
+          carAd.brand,
+          carAd.model,
+          carAd.price,
           carAd.region,
           em,
         );
+
         averagePrice =
+          entities.reduce((acc, ad) => acc + ad.price, 0) / entities.length;
+
+        averageRegionPrice =
           carAdEntities.reduce((acc, ad) => acc + ad.price, 0) /
           carAdEntities.length;
       }
@@ -165,14 +179,16 @@ export class CarAdService {
       if (!existingView) {
         await this.viewService.createCarAdView(userData.userId, carAd.id, em);
       }
-      return CarAdMapper.toResponseDto(
-        carAd,
+      const options = {
         totalViews,
         dailyViews,
         weeklyViews,
         monthlyViews,
         averagePrice,
-      );
+        averageRegionPrice,
+        accType: EAccountType.PREMIUM,
+      };
+      return CarAdMapper.toResponseDto(carAd, options);
     });
   }
 
@@ -180,70 +196,66 @@ export class CarAdService {
     userData: IUserData,
     carAdId: string,
     dto: UpdateCarAdRequestDto,
-  ): Promise<CarAdResponseWithOutUserDto> {
-    return await this.entityManager.transaction(async (em: EntityManager) => {
-      const carAdRepository =
-        em.getRepository(CarAdEntity) ?? this.carAdRepository;
-      const carAd = await carAdRepository.findOneBy({
-        id: carAdId,
-        user_id: userData.userId,
+  ): Promise<CarAdResponseDto> {
+    return await this.entityManager
+      .transaction(async (em: EntityManager) => {
+        const carAdRepository =
+          em.getRepository(CarAdEntity) ?? this.carAdRepository;
+        const carAd = await carAdRepository.findOneBy({
+          id: carAdId,
+          user_id: userData.userId,
+        });
+
+        if (!carAd) {
+          throw new NotFoundException('Car advertisement not found');
+        }
+
+        if (carAd.editCount >= 3) {
+          carAd.isActive = false;
+          await carAdRepository.save(carAd);
+          await this.emailService.sendNotificationToManager(carAd);
+          return null;
+        }
+
+        const { currency, price } = dto;
+        const rates = await this.exchangeRateService.getRatesMap(em);
+
+        if (currency !== undefined) {
+          carAd.currency = currency;
+        }
+        if (price !== undefined) {
+          carAd.price = price;
+        }
+
+        carAd.priceUSD =
+          carAd.currency === ECurrency.USD
+            ? carAd.price
+            : (carAd.price / rates[ECurrency.USD]) * rates[carAd.currency] ||
+              carAd.price / rates[ECurrency.USD];
+        carAd.priceEUR =
+          carAd.currency === ECurrency.EUR
+            ? carAd.price
+            : (carAd.price / rates[ECurrency.EUR]) * rates[carAd.currency] ||
+              carAd.price / rates[ECurrency.EUR];
+        carAd.priceUAH =
+          carAd.currency === ECurrency.UAH
+            ? carAd.price
+            : carAd.price * rates[carAd.currency];
+
+        carAd.exchangeRate = JSON.stringify(rates);
+        carAd.editCount += 1;
+
+        const editedCarAd = await carAdRepository.save(carAd);
+        return CarAdMapper.toResponseDto(editedCarAd);
+      })
+      .then((result) => {
+        if (result === null) {
+          throw new BadRequestException(
+            'Maximum edit advertisement 3 times only',
+          );
+        }
+        return result;
       });
-      if (!carAd) {
-        throw new NotFoundException('Car advertisement not found');
-      }
-      if (carAd.editCount >= 3) {
-        carAd.isActive = false;
-        throw new BadRequestException(
-          'Maximum edit advertisement 3 times only',
-        );
-      }
-
-      const { currency, price } = dto;
-      const rates = await this.exchangeRateService.getRatesMap(em);
-
-      if (currency !== undefined) {
-        carAd.currency = currency;
-      }
-      if (price !== undefined) {
-        carAd.price = price;
-      }
-
-      // carAd.priceUSD =
-      //   carAd.currency === ECurrency.USD
-      //     ? carAd.price
-      //     : carAd.price / rates[carAd.currency];
-      // carAd.priceEUR =
-      //   carAd.currency === ECurrency.EUR
-      //     ? carAd.price
-      //     : (carAd.price / rates[carAd.currency]) * rates[ECurrency.EUR];
-      // carAd.priceUAH =
-      //   carAd.currency === ECurrency.UAH
-      //     ? carAd.price
-      //     : (carAd.price / rates[carAd.currency]) * rates[ECurrency.UAH];
-
-      carAd.priceUSD =
-        carAd.currency === ECurrency.USD
-          ? carAd.price
-          : (carAd.price / rates[ECurrency.USD]) * rates[carAd.currency] ||
-            carAd.price / rates[ECurrency.USD];
-      carAd.priceEUR =
-        carAd.currency === ECurrency.EUR
-          ? carAd.price
-          : (carAd.price / rates[ECurrency.EUR]) * rates[carAd.currency] ||
-            carAd.price / rates[ECurrency.EUR];
-      carAd.priceUAH =
-        carAd.currency === ECurrency.UAH
-          ? carAd.price
-          : carAd.price * rates[carAd.currency];
-
-      carAd.exchangeRate = JSON.stringify(rates);
-      carAd.editCount += 1;
-
-      const editedCarAd = await carAdRepository.save(
-        carAdRepository.merge(carAd, dto),
-      );
-      return CarAdMapper.toResponseWithOutUserDto(editedCarAd);
-    });
   }
 
   public async updateExchangeRates(): Promise<void> {
@@ -268,19 +280,6 @@ export class CarAdService {
           ad.currency === ECurrency.UAH
             ? ad.price
             : ad.price * rates[ad.currency];
-
-        // ad.priceUSD =
-        //   ad.currency === ECurrency.USD
-        //     ? ad.price
-        //     : ad.price / rates[ad.currency];
-        // ad.priceEUR =
-        //   ad.currency === ECurrency.EUR
-        //     ? ad.price
-        //     : (ad.price / rates[ad.currency]) * rates[ECurrency.EUR];
-        // ad.priceUAH =
-        //   ad.currency === ECurrency.UAH
-        //     ? ad.price
-        //     : (ad.price / rates[ad.currency]) * rates[ECurrency.UAH];
 
         ad.exchangeRate = JSON.stringify(rates);
 
@@ -311,7 +310,7 @@ export class CarAdService {
     photo: Express.Multer.File,
     carAdId: string,
     userData: IUserData,
-  ): Promise<CarAdResponseWithOutUserDto> {
+  ): Promise<CarAdResponseDto> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository =
         em.getRepository(CarAdEntity) ?? this.carAdRepository;
@@ -334,7 +333,7 @@ export class CarAdService {
           user_id: userData.userId,
         }),
       );
-      return CarAdMapper.toResponseWithOutUserDto(car);
+      return CarAdMapper.toResponseDto(car);
     });
   }
 

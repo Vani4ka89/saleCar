@@ -43,7 +43,7 @@ export class CarAdEntity extends BaseModel {
   @Column('text')
   region: string;
 
-  @Column('boolean', { default: false })
+  @Column('boolean', { default: true })
   isActive: boolean;
 
   @Column('text', { nullable: true })

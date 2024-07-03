@@ -6,8 +6,9 @@ import { ListCarAdRequestDto } from '../models/dto/request/list-car-ad.request.d
 import {
   CarAdResponseDto,
   CarAdResponseManyDto,
-  CarAdResponseWithOutUserDto,
+  CarAdResponseWithUserDto,
 } from '../models/dto/response/car-ad.response.dto';
+import { EAccountType } from '../../auth/enums/account-type.enum';
 import { UserMapper } from '../../user/services/user.mapper';
 
 config({ path: '.env' });
@@ -15,42 +16,19 @@ config({ path: '.env' });
 const s3Config = getConfig().awsS3;
 
 export class CarAdMapper {
-  public static toResponseWithOutUserDto(
-    entity: CarAdEntity,
-  ): CarAdResponseWithOutUserDto {
-    return {
-      id: entity.id,
-      title: entity.title,
-      description: entity.description ? entity.description : null,
-      brand: entity.brand,
-      model: entity.model,
-      price: entity.price,
-      year: entity.year,
-      currency: entity.currency,
-
-      priceUSD: entity.priceUSD,
-      priceEUR: entity.priceEUR,
-      priceUAH: entity.priceUAH,
-
-      exchangeRate: entity.exchangeRate,
-      region: entity.region,
-      isActive: entity.isActive,
-
-      image: entity.image ? `${s3Config.AWS_S3_URL}${entity.image}` : null,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
-    };
-  }
-
   public static toResponseDto(
     entity: CarAdEntity,
-    totalViews?: number,
-    dailyViews?: number,
-    weeklyViews?: number,
-    monthlyViews?: number,
-    averagePrice?: number,
-  ): CarAdResponseDto {
-    return {
+    options?: {
+      totalViews?: number;
+      dailyViews?: number;
+      weeklyViews?: number;
+      monthlyViews?: number;
+      averageRegionPrice?: number;
+      averagePrice?: number;
+      accType?: EAccountType;
+    },
+  ): CarAdResponseDto | CarAdResponseWithUserDto {
+    const baseResponse = {
       id: entity.id,
       title: entity.title,
       description: entity.description ? entity.description : null,
@@ -59,25 +37,31 @@ export class CarAdMapper {
       price: entity.price,
       year: entity.year,
       currency: entity.currency,
-
-      priceUSD: entity.priceUSD,
-      priceEUR: entity.priceEUR,
-      priceUAH: entity.priceUAH,
-
+      priceUSD: Number(entity.priceUSD),
+      priceEUR: Number(entity.priceEUR),
+      priceUAH: Number(entity.priceUAH),
       exchangeRate: entity.exchangeRate,
       region: entity.region,
       isActive: entity.isActive,
-      totalViews: totalViews ? totalViews : 0,
-      dailyViews: dailyViews ? dailyViews : 0,
-      weeklyViews: weeklyViews ? weeklyViews : 0,
-      monthlyViews: monthlyViews ? monthlyViews : 0,
-      averagePrice: averagePrice ? averagePrice : 0,
-
       image: entity.image ? `${s3Config.AWS_S3_URL}${entity.image}` : null,
-      user: entity.user ? UserMapper.toResponseDto(entity.user) : null,
-      createdAt: entity.createdAt,
-      updatedAt: entity.updatedAt,
     };
+
+    if (options?.accType) {
+      return {
+        ...baseResponse,
+        user: UserMapper.toResponseDto(entity.user),
+        totalViews: options.totalViews,
+        dailyViews: options.dailyViews,
+        weeklyViews: options.weeklyViews,
+        monthlyViews: options.monthlyViews,
+        averagePrice: options.averagePrice,
+        averageRegionPrice: options.averageRegionPrice,
+        createdAt: entity.createdAt,
+        updatedAt: entity.updatedAt,
+      } as CarAdResponseWithUserDto;
+    } else {
+      return baseResponse as CarAdResponseDto;
+    }
   }
 
   public static toResponseManyDto(

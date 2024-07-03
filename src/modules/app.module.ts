@@ -7,6 +7,7 @@ import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
 import { CarAdModule } from './car_ad/car_ad.module';
 import { ViewModule } from './view/view.module';
+import { EmailModule } from './email/email.module';
 import configuration from '../configs/configuration';
 
 @Module({
@@ -22,6 +23,7 @@ import configuration from '../configs/configuration';
     CarAdModule,
     UserModule,
     ViewModule,
+    EmailModule,
   ],
 })
 export class AppModule {}

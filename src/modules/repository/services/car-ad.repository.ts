@@ -42,6 +42,29 @@ export class CarAdRepository extends Repository<CarAdEntity> {
     brand: string,
     model: string,
     year: number,
+    em?: EntityManager,
+  ): Promise<CarAdEntity[]> {
+    const carRepository = em.getRepository(CarAdEntity) ?? this;
+    const qb = carRepository.createQueryBuilder('car');
+    qb.setParameter('brand', brand);
+    qb.setParameter('model', model);
+    qb.setParameter('year', year);
+    if (brand) {
+      qb.where('car.brand = :brand');
+    }
+    if (model) {
+      qb.where('car.model = :model');
+    }
+    if (year) {
+      qb.where('car.year = :year');
+    }
+    return await qb.getMany();
+  }
+
+  public async getCarAdsRegionStatistics(
+    brand: string,
+    model: string,
+    year: number,
     region: string,
     em?: EntityManager,
   ): Promise<CarAdEntity[]> {
@@ -61,7 +84,6 @@ export class CarAdRepository extends Repository<CarAdEntity> {
       qb.where('car.year = :year');
     }
     qb.where('car.region = :region');
-    qb.addOrderBy('car.createdAt');
     return await qb.getMany();
   }
 }

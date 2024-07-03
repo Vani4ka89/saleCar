@@ -1,7 +1,6 @@
 import { UserResponseDto } from '../../../../user/models/dto/response/user-response.dto';
-import { ECurrency } from '../../../enums/currency.enum';
 
-export class CarAdResponseWithOutUserDto {
+export class CarAdResponseDto {
   id: string;
   title: string;
   description: string;
@@ -10,26 +9,23 @@ export class CarAdResponseWithOutUserDto {
   price: number;
   year: number;
   currency: string;
-
   priceUSD: number;
   priceEUR: number;
   priceUAH: number;
-
   exchangeRate: string;
   region: string;
   isActive: boolean;
-  totalViews?: number;
-  dailyViews?: number;
-  weeklyViews?: number;
-  monthlyViews?: number;
-  averagePrice?: number;
-
   image: string;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export class CarAdResponseDto extends CarAdResponseWithOutUserDto {
+export class CarAdResponseWithUserDto extends CarAdResponseDto {
+  totalViews?: number;
+  dailyViews?: number;
+  weeklyViews?: number;
+  monthlyViews?: number;
+  averageRegionPrice?: number;
   user: UserResponseDto;
 }
 
@@ -39,5 +35,5 @@ export class CarAdResponseManyDto {
     offset: number;
     total: number;
   };
-  carAds: CarAdResponseWithOutUserDto[];
+  carAds: CarAdResponseDto[];
 }
