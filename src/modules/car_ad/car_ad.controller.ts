@@ -12,7 +12,13 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { SkipAuth } from '../auth/decorators/skip-auth.decorator';
@@ -28,6 +34,8 @@ import { validators } from './validators/upload-photo.validator';
 import { ERole } from '../../common/enums/role.enum';
 import { CarAdService } from './services/car_ad.service';
 import { Roles } from '../../common/decorators/roles.decorator';
+import { FileUploadDto } from './models/dto/request/file-upload.dto';
+import { MissingBrandDto } from './models/dto/request/missing-brand-request.dto';
 
 @ApiTags('CarAd')
 @Controller('car-ads')
@@ -43,6 +51,14 @@ export class CarAdController {
     @CurrentUser() userData: IUserData,
   ): Promise<CarAdResponseDto> {
     return await this.carAdService.createCarAd(dto, userData);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Notify administration about missing brand' })
+  @Post('report-missing')
+  @Roles(ERole.SELLER)
+  public async reportMissingBrand(@Body() dto: MissingBrandDto): Promise<void> {
+    await this.carAdService.sendMissingBrandMessage(dto);
   }
 
   @SkipAuth()
@@ -98,7 +114,12 @@ export class CarAdController {
   }
 
   @ApiBearerAuth()
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Add car-advertisement photo (admin option)' })
+  @ApiBody({
+    description: 'Upload photo',
+    type: FileUploadDto,
+  })
   @Put(':id/photo')
   @Roles(ERole.SELLER)
   @UseInterceptors(FileInterceptor('file'))

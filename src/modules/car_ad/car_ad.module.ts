@@ -11,6 +11,7 @@ import { ExchangeRateService } from './services/exchange-rate.service';
 import { HttpModule } from '@nestjs/axios';
 import { ViewModule } from '../view/view.module';
 import { EmailModule } from '../email/email.module';
+import { ForbiddenWordsService } from './services/forbidden-words.service';
 
 @Module({
   imports: [AuthModule, EmailModule, HttpModule, UserModule, ViewModule],
@@ -19,6 +20,7 @@ import { EmailModule } from '../email/email.module';
     { provide: APP_GUARD, useClass: RolesGuard },
     CarAdService,
     ExchangeRateService,
+    ForbiddenWordsService,
     S3Service,
   ],
 })
