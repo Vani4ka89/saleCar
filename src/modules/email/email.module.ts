@@ -9,12 +9,12 @@ import * as process from 'node:process';
   imports: [
     MailerModule.forRoot({
       transport: {
-        host: 'smtp.gmail.com',
-        port: 587,
+        host: process.env.SMTP_HOST,
+        port: process.env.SMTP_PORT,
         secure: false,
         auth: {
-          user: 'ivan.tym4ak@gmail.com',
-          pass: 'djljvxdukglxdvau',
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
         },
       },
       defaults: {
