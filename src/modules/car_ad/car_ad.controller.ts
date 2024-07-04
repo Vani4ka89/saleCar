@@ -65,17 +65,6 @@ export class CarAdController {
     return await this.carAdService.getAllMyCarAds(query, userData);
   }
 
-  // @ApiBearerAuth()
-  // @ApiOperation({ summary: 'Get statistics' })
-  // @Post('statistics')
-  // @Roles(ERole.SELLER)
-  // public async getCarAdStatistics(
-  //   @Body() dto: CarAdStatisticRequestDto,
-  //   @CurrentUser() userData: IUserData,
-  // ): Promise<CarAdStatisticsResponseDto> {
-  //   return await this.carAdService.getCarAdStatistics(dto, userData);
-  // }
-
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get one car-advertisement' })
   @Get(':id/info')

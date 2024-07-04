@@ -23,11 +23,8 @@ import { CarAdMapper } from './car-ad.mapper';
 import { S3Service } from './s3.service';
 import { EAccountType } from '../../auth/enums/account-type.enum';
 import { CarAdRepository } from '../../repository/services/car-ad.repository';
-import { CarAdStatisticRequestDto } from '../models/dto/request/car-ad-statistic-request.dto';
-import { CarAdStatisticsResponseDto } from '../models/dto/response/car-ad-statistics-response.dto';
 import { ExchangeRateService } from './exchange-rate.service';
 import { ECurrency } from '../enums/currency.enum';
-import { ViewEntity } from '../../../database/entities/view.entity';
 import { ViewService } from '../../view/services/view.service';
 import { ViewRepository } from '../../repository/services/view.repository';
 import { EmailService } from '../../email/services/email.service';
@@ -133,42 +130,43 @@ export class CarAdService {
           user: true,
         },
       });
+
       if (!carAd) {
         throw new UnprocessableEntityException('CarAd not found');
       }
-      let totalViews: number;
-      let dailyViews: number;
-      let weeklyViews: number;
-      let monthlyViews: number;
-      let averagePrice: number;
-      let averageRegionPrice: number;
+
+      let totalViews = 0;
+      let dailyViews = 0;
+      let weeklyViews = 0;
+      let monthlyViews = 0;
+      let averagePrice = 0;
+      let averageRegionPrice = 0;
+
       if (userData.accountType === EAccountType.PREMIUM) {
-        dailyViews = await this.viewRepository.getDailyViews(carAd.id, em);
-        weeklyViews = await this.viewRepository.getWeeklyViews(carAd.id, em);
-        monthlyViews = await this.viewRepository.getMonthlyViews(carAd.id, em);
-        totalViews = await this.viewService.countViews(carAd.id, em);
+        [dailyViews, weeklyViews, monthlyViews, totalViews] = await Promise.all(
+          [
+            this.viewRepository.getDailyViews(carAd.id, em),
+            this.viewRepository.getWeeklyViews(carAd.id, em),
+            this.viewRepository.getMonthlyViews(carAd.id, em),
+            this.viewService.countViews(carAd.id, em),
+          ],
+        );
 
-        const carAdEntities = await this.carAdRepository.getCarAdsStatistics(
-          carAd.brand,
-          carAd.model,
-          carAd.price,
+        const carAdsStatistics = await this.carAdRepository.getCarAdsStatistics(
+          carAd,
           em,
         );
 
-        const entities = await this.carAdRepository.getCarAdsRegionStatistics(
-          carAd.brand,
-          carAd.model,
-          carAd.price,
-          carAd.region,
-          em,
-        );
+        const carAdsRegionStatistics =
+          await this.carAdRepository.getCarAdsRegionStatistics(carAd, em);
 
         averagePrice =
-          entities.reduce((acc, ad) => acc + ad.price, 0) / entities.length;
+          carAdsStatistics.reduce((acc, ad) => acc + ad.price, 0) /
+          carAdsStatistics.length;
 
         averageRegionPrice =
-          carAdEntities.reduce((acc, ad) => acc + ad.price, 0) /
-          carAdEntities.length;
+          carAdsRegionStatistics.reduce((acc, ad) => acc + ad.price, 0) /
+          carAdsRegionStatistics.length;
       }
       const existingView = await this.viewService.findCarAdView(
         userData.userId,
@@ -179,6 +177,7 @@ export class CarAdService {
       if (!existingView) {
         await this.viewService.createCarAdView(userData.userId, carAd.id, em);
       }
+
       const options = {
         totalViews,
         dailyViews,
@@ -188,6 +187,7 @@ export class CarAdService {
         averageRegionPrice,
         accType: EAccountType.PREMIUM,
       };
+
       return CarAdMapper.toResponseDto(carAd, options);
     });
   }
@@ -245,7 +245,9 @@ export class CarAdService {
         carAd.exchangeRate = JSON.stringify(rates);
         carAd.editCount += 1;
 
-        const editedCarAd = await carAdRepository.save(carAd);
+        const editedCarAd = await carAdRepository.save(
+          carAdRepository.merge(carAd, dto),
+        );
         return CarAdMapper.toResponseDto(editedCarAd);
       })
       .then((result) => {
@@ -336,29 +338,4 @@ export class CarAdService {
       return CarAdMapper.toResponseDto(car);
     });
   }
-
-  // public async getCarAdStatistics(
-  //   dto: CarAdStatisticRequestDto,
-  //   userData: IUserData,
-  // ): Promise<CarAdStatisticsResponseDto> {
-  //   return await this.entityManager.transaction(async (em: EntityManager) => {
-  //     const user = await this.userService.findByIdOrThrow(userData.userId, em);
-  //     if (user.accountType !== EAccountType.PREMIUM) {
-  //       throw new ForbiddenException(
-  //         'Access denied. Only premium users can access statistics',
-  //       );
-  //     }
-  //     const userAds = await this.carAdRepository.getCarAdsStatistics(dto, em);
-  //     const averagePrice =
-  //       userAds.reduce((acc, ad) => acc + ad.price, 0) / userAds.length;
-  //     // const totalViews = userAds.map((ad) => {
-  //     //   ad.views.reduce((acc, a) => acc + a.value, 0);
-  //     // });
-  //     const totalViews = 0;
-  //     return {
-  //       averagePrice,
-  //       totalViews,
-  //     };
-  //   });
-  // }
 }

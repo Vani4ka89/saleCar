@@ -39,51 +39,29 @@ export class CarAdRepository extends Repository<CarAdEntity> {
   }
 
   public async getCarAdsStatistics(
-    brand: string,
-    model: string,
-    year: number,
+    carAd: CarAdEntity,
     em?: EntityManager,
   ): Promise<CarAdEntity[]> {
     const carRepository = em.getRepository(CarAdEntity) ?? this;
+    const { brand, model, year } = carAd;
     const qb = carRepository.createQueryBuilder('car');
-    qb.setParameter('brand', brand);
-    qb.setParameter('model', model);
-    qb.setParameter('year', year);
-    if (brand) {
-      qb.where('car.brand = :brand');
-    }
-    if (model) {
-      qb.where('car.model = :model');
-    }
-    if (year) {
-      qb.where('car.year = :year');
-    }
+    qb.where('car.brand = :brand', { brand });
+    qb.where('car.model = :model', { model });
+    qb.where('car.year = :year', { year });
     return await qb.getMany();
   }
 
   public async getCarAdsRegionStatistics(
-    brand: string,
-    model: string,
-    year: number,
-    region: string,
+    carAd: CarAdEntity,
     em?: EntityManager,
   ): Promise<CarAdEntity[]> {
     const carRepository = em.getRepository(CarAdEntity) ?? this;
+    const { brand, model, year, region } = carAd;
     const qb = carRepository.createQueryBuilder('car');
-    qb.setParameter('brand', brand);
-    qb.setParameter('model', model);
-    qb.setParameter('year', year);
-    qb.setParameter('region', region);
-    if (brand) {
-      qb.where('car.brand = :brand');
-    }
-    if (model) {
-      qb.where('car.model = :model');
-    }
-    if (year) {
-      qb.where('car.year = :year');
-    }
-    qb.where('car.region = :region');
+    qb.where('car.brand = :brand', { brand });
+    qb.where('car.model = :model', { model });
+    qb.where('car.year = :year', { year });
+    qb.where('car.region = :region', { region });
     return await qb.getMany();
   }
 }

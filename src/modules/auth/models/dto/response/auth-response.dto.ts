@@ -1,4 +1,3 @@
-import { ITokenPair } from '../../../types/token.type';
 import { TokenResponseDto } from './token-response.dto';
 
 export class SignUpResponseDto {

@@ -14,7 +14,7 @@ export class EmailService {
     try {
       await this.mailerService.sendMail({
         to: 'ivan.tym4ak@gmail.com',
-        subject: 'Car Ad Deactivated for Review',
+        subject: 'Advertisement Deactivated for Review🚘',
         template: path.join(
           process.cwd(),
           'src',
@@ -27,6 +27,10 @@ export class EmailService {
           carAdId: carAd.id,
           title: carAd.title,
           description: carAd.description,
+          brand: carAd.brand,
+          model: carAd.model,
+          year: carAd.year,
+          price: carAd.price,
           userId: carAd.user_id,
         },
       });

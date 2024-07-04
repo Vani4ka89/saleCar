@@ -42,7 +42,7 @@ export class UpdateCarAdRequestDto {
   @IsString()
   currency?: ECurrency;
 
-  @ApiProperty({ example: "Ternopil'ska obl." })
+  @ApiProperty({ example: 'Тернопільська обл.' })
   @IsOptional()
   @IsString()
   region?: string;

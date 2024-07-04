@@ -21,6 +21,8 @@ import { UpdateUserRequestDto } from '../models/dto/request/update-user.request.
 import { CarAdEntity } from '../../../database/entities/car-ad.entity';
 import { CarAdRepository } from '../../repository/services/car-ad.repository';
 import { RefreshTokenRepository } from '../../repository/services/refresh-token.repository';
+import { ViewEntity } from '../../../database/entities/view.entity';
+import { ViewRepository } from '../../repository/services/view.repository';
 
 @Injectable()
 export class UserService {
@@ -30,6 +32,7 @@ export class UserService {
     private readonly carAdRepository: CarAdRepository,
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly userRepository: UserRepository,
+    private readonly viewRepository: ViewRepository,
   ) {}
 
   public async changeUserAccountType(
@@ -134,10 +137,13 @@ export class UserService {
         em.getRepository(RefreshTokenEntity) ?? this.refreshTokenRepository;
       const carAdRepository =
         em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const viewRepository =
+        em.getRepository(ViewEntity) ?? this.viewRepository;
       const user = await this.findByIdOrThrow(userId, em);
       await Promise.all([
         refreshTokenRepository.delete({ user_id: user.id }),
         carAdRepository.delete({ user_id: user.id }),
+        viewRepository.delete({ user_id: user.id }),
         userRepository.remove(user),
       ]);
     });
