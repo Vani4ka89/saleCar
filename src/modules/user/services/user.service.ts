@@ -23,9 +23,17 @@ import { CarAdRepository } from '../../repository/services/car-ad.repository';
 import { RefreshTokenRepository } from '../../repository/services/refresh-token.repository';
 import { ViewEntity } from '../../../database/entities/view.entity';
 import { ViewRepository } from '../../repository/services/view.repository';
+import { SignUpResponseDto } from '../../auth/models/dto/response/auth-response.dto';
+import * as bcrypt from 'bcrypt';
+import { AuthMapper } from '../../auth/services/auth.mapper';
+import { ConfigType, JwtConfig } from '../../../configs/config.type';
+import { ConfigService } from '@nestjs/config';
+import { CreateAdminRequestDto } from '../models/dto/request/create-admin-request.dto';
 
 @Injectable()
 export class UserService {
+  private readonly jwtConfig: JwtConfig;
+
   constructor(
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
@@ -33,7 +41,10 @@ export class UserService {
     private readonly refreshTokenRepository: RefreshTokenRepository,
     private readonly userRepository: UserRepository,
     private readonly viewRepository: ViewRepository,
-  ) {}
+    private readonly configService: ConfigService<ConfigType>,
+  ) {
+    this.jwtConfig = this.configService.get<JwtConfig>('jwt');
+  }
 
   public async changeUserAccountType(
     dto: UpdateUserAccTypeRequestDto,
@@ -170,5 +181,29 @@ export class UserService {
       throw new UnprocessableEntityException('User not found');
     }
     return user;
+  }
+
+  public async createAdmin(
+    dto: CreateAdminRequestDto,
+  ): Promise<SignUpResponseDto> {
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const userRepository =
+        em.getRepository(UserEntity) ?? this.userRepository;
+      await this.isEmailUniqueOrThrow(dto.email, em);
+      const password = await bcrypt.hash(
+        dto.password,
+        this.jwtConfig.secretSalt,
+      );
+
+      const user = await userRepository.save(
+        userRepository.create({ ...dto, password }),
+      );
+
+      return AuthMapper.toSignUpResponseDto(user);
+    });
+  }
+
+  public async isAdminExist(email: string): Promise<UserEntity> {
+    return await this.userRepository.findOneBy({ email });
   }
 }

@@ -2,7 +2,6 @@ import { Column, Entity, OneToMany } from 'typeorm';
 import { ETableName } from './enums/table-name.enum';
 import { BaseModel } from './models/base.model';
 import { CarAdEntity } from './car-ad.entity';
-import { MessageEntity } from './message.entity';
 import { RefreshTokenEntity } from './refresh-token.entity';
 import { EAccountType } from '../../modules/auth/enums/account-type.enum';
 import { ERole } from '../../common/enums/role.enum';
@@ -39,9 +38,6 @@ export class UserEntity extends BaseModel {
 
   @OneToMany(() => CarAdEntity, (entity) => entity.user)
   ads?: CarAdEntity[];
-
-  @OneToMany(() => MessageEntity, (entity) => entity.user)
-  messages?: MessageEntity[];
 
   @OneToMany(() => RefreshTokenEntity, (entity) => entity.user)
   refreshTokens?: RefreshTokenEntity[];

@@ -9,7 +9,7 @@ export class ListCarAdRequestDto {
   @Max(50)
   @IsOptional()
   @Type(() => Number)
-  limit?: number;
+  limit?: number = 1;
 
   @ApiProperty()
   @Min(0)

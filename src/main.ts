@@ -5,6 +5,8 @@ import { ConfigService } from '@nestjs/config';
 import { AppConfig, ConfigType } from './configs/config.type';
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { GlobalExceptionFilter } from './common/exceptions/global-exception.filter';
+import { UserService } from './modules/user/services/user.service';
+import { adminData } from './modules/user/constants/admin-data';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -38,6 +40,13 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  const userService = app.get(UserService);
+  const admin = await userService.isAdminExist(adminData.email);
+  if (!admin) {
+    await userService.createAdmin(adminData);
+    Logger.log('User admin was created successfully');
+  }
 
   const configService = app.get(ConfigService<ConfigType>);
   const appConfig = configService.get<AppConfig>('app');

@@ -25,7 +25,7 @@ export class CarAdMapper {
       monthlyViews?: number;
       averageRegionPrice?: number;
       averagePrice?: number;
-      accType?: EAccountType;
+      accType?: string;
     },
   ): CarAdResponseDto | CarAdResponseWithUserDto {
     const baseResponse = {
@@ -46,7 +46,7 @@ export class CarAdMapper {
       image: entity.image ? `${s3Config.AWS_S3_URL}${entity.image}` : null,
     };
 
-    if (options?.accType) {
+    if (options?.accType === EAccountType.PREMIUM) {
       return {
         ...baseResponse,
         user: UserMapper.toResponseDto(entity.user),

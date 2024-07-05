@@ -28,6 +28,8 @@ import { ECurrency } from '../enums/currency.enum';
 import { ViewService } from '../../view/services/view.service';
 import { ViewRepository } from '../../repository/services/view.repository';
 import { EmailService } from '../../email/services/email.service';
+import { MissingBrandDto } from '../models/dto/request/missing-brand-request.dto';
+import { ForbiddenWordsService } from './forbidden-words.service';
 
 @Injectable()
 export class CarAdService {
@@ -37,6 +39,7 @@ export class CarAdService {
     private readonly viewService: ViewService,
     private readonly exchangeRateService: ExchangeRateService,
     private readonly emailService: EmailService,
+    private readonly forbiddenWordsService: ForbiddenWordsService,
     private readonly userService: UserService,
     private readonly s3Service: S3Service,
     @InjectEntityManager()
@@ -50,11 +53,22 @@ export class CarAdService {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository =
         em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const badWords = await this.forbiddenWordsService.checkForbiddenWords(
+        dto.description,
+      );
+
+      if (badWords) {
+        throw new BadRequestException(
+          'Advertisement contains illegal words! Please edit your advertisement.',
+        );
+      }
       const user = await this.userService.findByIdOrThrow(userData.userId, em);
+
       if (userData.accountType === EAccountType.BASIC) {
         const userCars = await carAdRepository.count({
           where: { user_id: user.id },
         });
+
         if (userCars >= 1) {
           throw new ForbiddenException(
             'Subscribe Premium account to add more cars!',
@@ -75,7 +89,6 @@ export class CarAdService {
             price / rates[ECurrency.EUR];
       const priceUAH =
         currency === ECurrency.UAH ? price : price * rates[currency];
-
       const car = await carAdRepository.save(
         carAdRepository.create({
           ...dto,
@@ -89,6 +102,10 @@ export class CarAdService {
       );
       return CarAdMapper.toResponseDto(car);
     });
+  }
+
+  public async sendMissingBrandMessage(dto: MissingBrandDto): Promise<void> {
+    await this.emailService.sendMissingBrandMessageToManager(dto);
   }
 
   public async getAllCarAds(
@@ -185,7 +202,7 @@ export class CarAdService {
         monthlyViews,
         averagePrice,
         averageRegionPrice,
-        accType: EAccountType.PREMIUM,
+        accType: userData.accountType,
       };
 
       return CarAdMapper.toResponseDto(carAd, options);
@@ -199,6 +216,14 @@ export class CarAdService {
   ): Promise<CarAdResponseDto> {
     return await this.entityManager
       .transaction(async (em: EntityManager) => {
+        const badWords = await this.forbiddenWordsService.checkForbiddenWords(
+          dto.description,
+        );
+        if (badWords) {
+          throw new BadRequestException(
+            'Advertisement contains illegal words! Please edit your advertisement.',
+          );
+        }
         const carAdRepository =
           em.getRepository(CarAdEntity) ?? this.carAdRepository;
         const carAd = await carAdRepository.findOneBy({
@@ -320,6 +345,10 @@ export class CarAdService {
         user_id: userData.userId,
         id: carAdId,
       });
+      if (!carAd) {
+        throw new UnprocessableEntityException('Car advertisement not found');
+      }
+
       if (carAd.image) {
         await this.s3Service.deleteFile(carAd.image, em);
       }
