@@ -69,13 +69,17 @@ export class UserService {
     dto: UpdateUserRoleRequestDto,
     userId: string,
   ): Promise<UserResponseDto> {
-    const user = await this.findByIdOrThrow(userId);
-    if (user.role === dto.role) {
-      throw new ConflictException(`User already has role ${dto.role}`);
-    }
-    user.role = dto.role;
-    const userEntity = await this.userRepository.save(user);
-    return UserMapper.toResponseDto(userEntity);
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const userRepository =
+        em.getRepository(UserEntity) ?? this.userRepository;
+      const user = await this.findByIdOrThrow(userId, em);
+      if (user.role === dto.role) {
+        throw new ConflictException(`User already has role ${dto.role}`);
+      }
+      user.role = dto.role;
+      const userEntity = await userRepository.save(user);
+      return UserMapper.toResponseDto(userEntity);
+    });
   }
 
   public async banUser(dto: BanUserRequestDto): Promise<UserResponseDto> {
@@ -204,6 +208,10 @@ export class UserService {
   }
 
   public async isAdminExist(email: string): Promise<UserEntity> {
-    return await this.userRepository.findOneBy({ email });
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const userRepository =
+        em.getRepository(UserEntity) ?? this.userRepository;
+      return await userRepository.findOneBy({ email });
+    });
   }
 }

@@ -30,6 +30,7 @@ import { ViewRepository } from '../../repository/services/view.repository';
 import { EmailService } from '../../email/services/email.service';
 import { MissingBrandDto } from '../models/dto/request/missing-brand-request.dto';
 import { ForbiddenWordsService } from './forbidden-words.service';
+import { ViewEntity } from '../../../database/entities/view.entity';
 
 @Injectable()
 export class CarAdService {
@@ -89,6 +90,7 @@ export class CarAdService {
             price / rates[ECurrency.EUR];
       const priceUAH =
         currency === ECurrency.UAH ? price : price * rates[currency];
+
       const car = await carAdRepository.save(
         carAdRepository.create({
           ...dto,
@@ -100,12 +102,15 @@ export class CarAdService {
           isActive: true,
         }),
       );
+
       return CarAdMapper.toResponseDto(car);
     });
   }
 
   public async sendMissingBrandMessage(dto: MissingBrandDto): Promise<void> {
-    await this.emailService.sendMissingBrandMessageToManager(dto);
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      await this.emailService.sendMissingBrandMessageToManager(dto, em);
+    });
   }
 
   public async getAllCarAds(
@@ -238,7 +243,7 @@ export class CarAdService {
         if (carAd.editCount >= 3) {
           carAd.isActive = false;
           await carAdRepository.save(carAd);
-          await this.emailService.sendNotificationToManager(carAd);
+          await this.emailService.sendNotificationToManager(carAd, em);
           return null;
         }
 
@@ -320,6 +325,8 @@ export class CarAdService {
     return await this.entityManager.transaction(async (em: EntityManager) => {
       const carAdRepository =
         em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const viewRepository =
+        em.getRepository(ViewEntity) ?? this.viewRepository;
       const carAd = await carAdRepository.findOneBy({
         id: carAdId,
       });
@@ -329,7 +336,10 @@ export class CarAdService {
       if (carAd.image) {
         await this.s3Service.deleteFile(carAd.image, em);
       }
-      await carAdRepository.remove(carAd);
+      await Promise.all([
+        viewRepository.delete({ carAd_id: carAd.id }),
+        carAdRepository.remove(carAd),
+      ]);
     });
   }
 
