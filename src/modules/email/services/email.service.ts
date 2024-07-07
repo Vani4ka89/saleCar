@@ -5,6 +5,7 @@ import * as path from 'node:path';
 import * as process from 'node:process';
 import { MissingBrandDto } from '../../car_ad/models/dto/request/missing-brand-request.dto';
 import { EntityManager } from 'typeorm';
+import { IUserData } from '../../auth/types/user-data.type';
 
 @Injectable()
 export class EmailService {
@@ -43,6 +44,7 @@ export class EmailService {
 
   public async sendNotificationToManager(
     carAd: CarAdEntity,
+    userData: IUserData,
     em?: EntityManager,
   ): Promise<void> {
     return await em.transaction(async (em: EntityManager) => {
@@ -58,7 +60,7 @@ export class EmailService {
       };
 
       await this.sendEmail(
-        'ivan.tym4ak@gmail.com',
+        userData.email,
         'Advertisement Deactivated for Review🚘',
         'car-ad',
         context,
@@ -69,6 +71,7 @@ export class EmailService {
 
   public async sendMissingBrandMessageToManager(
     dto: MissingBrandDto,
+    userData: IUserData,
     em?: EntityManager,
   ): Promise<void> {
     return await em.transaction(async (em: EntityManager) => {
@@ -78,7 +81,7 @@ export class EmailService {
       };
 
       await this.sendEmail(
-        'ivan.tym4ak@gmail.com',
+        userData.email,
         'Missing Brand for Review🚘',
         'missing-brand',
         context,

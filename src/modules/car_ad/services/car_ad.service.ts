@@ -158,9 +158,16 @@ export class CarAdService {
     });
   }
 
-  public async sendMissingBrandMessage(dto: MissingBrandDto): Promise<void> {
+  public async sendMissingBrandMessage(
+    dto: MissingBrandDto,
+    userData: IUserData,
+  ): Promise<void> {
     return await this.entityManager.transaction(async (em: EntityManager) => {
-      await this.emailService.sendMissingBrandMessageToManager(dto, em);
+      await this.emailService.sendMissingBrandMessageToManager(
+        dto,
+        userData,
+        em,
+      );
     });
   }
 
@@ -256,8 +263,8 @@ export class CarAdService {
         dailyViews,
         weeklyViews,
         monthlyViews,
-        averagePrice,
-        averageRegionPrice,
+        averagePrice: Math.round(averagePrice),
+        averageRegionPrice: Math.round(averageRegionPrice),
         accType: userData.accountType,
       };
 
@@ -324,7 +331,11 @@ export class CarAdService {
           car.isActive = false;
           await carAdRepository.save(car);
           if (car.editCount >= 4) {
-            await this.emailService.sendNotificationToManager(car, em);
+            await this.emailService.sendNotificationToManager(
+              car,
+              userData,
+              em,
+            );
           }
           return null;
         }

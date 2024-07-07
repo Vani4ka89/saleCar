@@ -45,11 +45,11 @@ export class CarAdRepository extends Repository<CarAdEntity> {
     em?: EntityManager,
   ): Promise<CarAdEntity[]> {
     const carRepository = em.getRepository(CarAdEntity) ?? this;
-    const { brand, model, year } = carAd;
+    const { brand, model } = carAd;
     const qb = carRepository.createQueryBuilder('car');
     qb.where('car.brand = :brand', { brand });
     qb.where('car.model = :model', { model });
-    qb.where('car.year = :year', { year });
+    // qb.where('car.year = :year', { year });
     return await qb.getMany();
   }
 
@@ -58,11 +58,11 @@ export class CarAdRepository extends Repository<CarAdEntity> {
     em?: EntityManager,
   ): Promise<CarAdEntity[]> {
     const carRepository = em.getRepository(CarAdEntity) ?? this;
-    const { brand, model, year, region } = carAd;
+    const { brand, model, region } = carAd;
     const qb = carRepository.createQueryBuilder('car');
     qb.where('car.brand = :brand', { brand });
     qb.where('car.model = :model', { model });
-    qb.where('car.year = :year', { year });
+    // qb.where('car.year = :year', { year });
     qb.where('car.region = :region', { region });
     return await qb.getMany();
   }

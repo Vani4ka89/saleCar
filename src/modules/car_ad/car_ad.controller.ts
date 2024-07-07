@@ -77,8 +77,11 @@ export class CarAdController {
   @ApiOperation({ summary: 'Notify administration about missing brand' })
   @Post('report-missing')
   @Roles(ERole.SELLER)
-  public async reportMissingBrand(@Body() dto: MissingBrandDto): Promise<void> {
-    await this.carAdService.sendMissingBrandMessage(dto);
+  public async reportMissingBrand(
+    @Body() dto: MissingBrandDto,
+    @CurrentUser() userData: IUserData,
+  ): Promise<void> {
+    await this.carAdService.sendMissingBrandMessage(dto, userData);
   }
 
   @SkipAuth()
