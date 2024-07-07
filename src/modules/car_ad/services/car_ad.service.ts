@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -31,11 +32,13 @@ import { EmailService } from '../../email/services/email.service';
 import { MissingBrandDto } from '../models/dto/request/missing-brand-request.dto';
 import { ForbiddenWordsService } from './forbidden-words.service';
 import { ViewEntity } from '../../../database/entities/view.entity';
+import { UserRepository } from '../../repository/services/user.repository';
 
 @Injectable()
 export class CarAdService {
   constructor(
     private readonly carAdRepository: CarAdRepository,
+    private readonly userRepository: UserRepository,
     private readonly viewRepository: ViewRepository,
     private readonly viewService: ViewService,
     private readonly exchangeRateService: ExchangeRateService,
@@ -51,58 +54,106 @@ export class CarAdService {
     dto: CreateCarAdRequestDto,
     userData: IUserData,
   ): Promise<CarAdResponseDto> {
-    return await this.entityManager.transaction(async (em: EntityManager) => {
-      const carAdRepository =
-        em.getRepository(CarAdEntity) ?? this.carAdRepository;
-      const badWords = await this.forbiddenWordsService.checkForbiddenWords(
-        dto.description,
-      );
-
-      if (badWords) {
-        throw new BadRequestException(
-          'Advertisement contains illegal words! Please edit your advertisement.',
+    return await this.entityManager
+      .transaction(async (em: EntityManager) => {
+        const user = await this.userService.findByIdOrThrow(
+          userData.userId,
+          em,
         );
-      }
-      const user = await this.userService.findByIdOrThrow(userData.userId, em);
+        const carAdRepository =
+          em.getRepository(CarAdEntity) ?? this.carAdRepository;
 
-      if (userData.accountType === EAccountType.BASIC) {
-        const userCars = await carAdRepository.count({
-          where: { user_id: user.id },
-        });
+        if (userData.accountType === EAccountType.BASIC) {
+          const userCars = await carAdRepository.count({
+            where: { user_id: user.id },
+          });
 
-        if (userCars >= 1) {
-          throw new ForbiddenException(
-            'Subscribe Premium account to add more cars!',
-          );
+          if (userCars >= 1) {
+            throw new ForbiddenException(
+              'Subscribe Premium account to add more cars!',
+            );
+          }
         }
-      }
-      const { currency, price } = dto;
-      const rates = await this.exchangeRateService.getRatesMap(em);
-      const priceUSD =
-        currency === ECurrency.USD
-          ? price
-          : (price / rates[ECurrency.USD]) * rates[currency] ||
-            price / rates[ECurrency.USD];
-      const priceEUR =
-        currency === ECurrency.EUR
-          ? price
-          : (price / rates[ECurrency.EUR]) * rates[currency] ||
-            price / rates[ECurrency.EUR];
-      const priceUAH =
-        currency === ECurrency.UAH ? price : price * rates[currency];
+        const { currency, price } = dto;
+        const rates = await this.exchangeRateService.getRatesMap(em);
+        const priceUSD =
+          currency === ECurrency.USD
+            ? price
+            : (price / rates[ECurrency.USD]) * rates[currency] ||
+              price / rates[ECurrency.USD];
+        const priceEUR =
+          currency === ECurrency.EUR
+            ? price
+            : (price / rates[ECurrency.EUR]) * rates[currency] ||
+              price / rates[ECurrency.EUR];
+        const priceUAH =
+          currency === ECurrency.UAH ? price : price * rates[currency];
 
-      const car = await carAdRepository.save(
-        carAdRepository.create({
+        const badWords = await this.forbiddenWordsService.checkForbiddenWords(
+          dto.description,
+        );
+
+        const car = carAdRepository.create({
           ...dto,
           user_id: user.id,
           priceUAH,
           priceUSD,
           priceEUR,
           exchangeRate: JSON.stringify(rates),
-          isActive: true,
-        }),
-      );
+          editCount: 0,
+          isActive: !badWords,
+        });
 
+        if (badWords) {
+          car.isActive = false;
+          await carAdRepository.save(car);
+          return null;
+        }
+        const carAd = await carAdRepository.save(car);
+        return CarAdMapper.toResponseDto(carAd);
+      })
+      .then((result) => {
+        if (result === null) {
+          throw new BadRequestException(
+            'Advertisement contains illegal words! Please edit your advertisement.',
+          );
+        }
+        return result;
+      });
+  }
+
+  public async activateCarAd(carAdId: string): Promise<CarAdResponseDto> {
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const carAdRepository =
+        em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const entity = await carAdRepository.findOneBy({ id: carAdId });
+      if (!entity) {
+        throw new NotFoundException('Car advertisement not found');
+      }
+      if (entity.isActive === true) {
+        throw new ConflictException('Car advertisement has already activated');
+      }
+      entity.isActive = true;
+      const car = await carAdRepository.save(entity);
+      return CarAdMapper.toResponseDto(car);
+    });
+  }
+
+  public async deactivateCarAd(carAdId: string): Promise<CarAdResponseDto> {
+    return await this.entityManager.transaction(async (em: EntityManager) => {
+      const carAdRepository =
+        em.getRepository(CarAdEntity) ?? this.carAdRepository;
+      const entity = await carAdRepository.findOneBy({ id: carAdId });
+      if (!entity) {
+        throw new NotFoundException('Car advertisement not found');
+      }
+      if (entity.isActive === false) {
+        throw new ConflictException(
+          'Car advertisement has already deactivated',
+        );
+      }
+      entity.isActive = false;
+      const car = await carAdRepository.save(entity);
       return CarAdMapper.toResponseDto(car);
     });
   }
@@ -221,14 +272,6 @@ export class CarAdService {
   ): Promise<CarAdResponseDto> {
     return await this.entityManager
       .transaction(async (em: EntityManager) => {
-        const badWords = await this.forbiddenWordsService.checkForbiddenWords(
-          dto.description,
-        );
-        if (badWords) {
-          throw new BadRequestException(
-            'Advertisement contains illegal words! Please edit your advertisement.',
-          );
-        }
         const carAdRepository =
           em.getRepository(CarAdEntity) ?? this.carAdRepository;
         const carAd = await carAdRepository.findOneBy({
@@ -238,13 +281,6 @@ export class CarAdService {
 
         if (!carAd) {
           throw new NotFoundException('Car advertisement not found');
-        }
-
-        if (carAd.editCount >= 3) {
-          carAd.isActive = false;
-          await carAdRepository.save(carAd);
-          await this.emailService.sendNotificationToManager(carAd, em);
-          return null;
         }
 
         const { currency, price } = dto;
@@ -273,17 +309,34 @@ export class CarAdService {
             : carAd.price * rates[carAd.currency];
 
         carAd.exchangeRate = JSON.stringify(rates);
-        carAd.editCount += 1;
 
-        const editedCarAd = await carAdRepository.save(
-          carAdRepository.merge(carAd, dto),
+        const badWords = await this.forbiddenWordsService.checkForbiddenWords(
+          dto.description,
         );
+
+        const car = carAdRepository.merge(
+          { ...carAd, isActive: !badWords },
+          dto,
+        );
+
+        if (badWords) {
+          car.editCount += 1;
+          car.isActive = false;
+          await carAdRepository.save(car);
+          if (car.editCount >= 4) {
+            await this.emailService.sendNotificationToManager(car, em);
+          }
+          return null;
+        }
+        car.editCount <= 3 ? (car.isActive = true) : (car.isActive = false);
+        const editedCarAd = await carAdRepository.save(car);
+
         return CarAdMapper.toResponseDto(editedCarAd);
       })
       .then((result) => {
         if (result === null) {
           throw new BadRequestException(
-            'Maximum edit advertisement 3 times only',
+            'Advertisement contains illegal words! Please edit your advertisement.',
           );
         }
         return result;

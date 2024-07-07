@@ -54,6 +54,26 @@ export class CarAdController {
   }
 
   @ApiBearerAuth()
+  @ApiOperation({ summary: 'Activate advertisement (manager option)' })
+  @Post(':id/activate')
+  @Roles(ERole.MANAGER)
+  public async activateCarAd(
+    @Param('id', ParseUUIDPipe) carAdId: string,
+  ): Promise<CarAdResponseDto> {
+    return await this.carAdService.activateCarAd(carAdId);
+  }
+
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Deactivate advertisement (manager option)' })
+  @Post(':id/deactivate')
+  @Roles(ERole.MANAGER)
+  public async deactivateCarAd(
+    @Param('id', ParseUUIDPipe) carAdId: string,
+  ): Promise<CarAdResponseDto> {
+    return await this.carAdService.deactivateCarAd(carAdId);
+  }
+
+  @ApiBearerAuth()
   @ApiOperation({ summary: 'Notify administration about missing brand' })
   @Post('report-missing')
   @Roles(ERole.SELLER)

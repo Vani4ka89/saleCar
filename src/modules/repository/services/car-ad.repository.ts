@@ -17,6 +17,8 @@ export class CarAdRepository extends Repository<CarAdEntity> {
   ): Promise<[CarAdEntity[], number]> {
     const carRepository = em.getRepository(CarAdEntity) ?? this;
     const qb = carRepository.createQueryBuilder('car');
+    qb.setParameter('true', true);
+    qb.where('car.isActive = :true');
     qb.take(query.limit);
     qb.skip(query.offset);
     qb.addOrderBy('car.createdAt');

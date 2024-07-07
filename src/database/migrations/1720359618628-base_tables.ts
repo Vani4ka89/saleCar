@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class BaseTables1720172570323 implements MigrationInterface {
-    name = 'BaseTables1720172570323'
+export class BaseTables1720359618628 implements MigrationInterface {
+    name = 'BaseTables1720359618628'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`CREATE TYPE "public"."advertisement_currency_enum" AS ENUM('UAH', 'USD', 'EUR')`);
