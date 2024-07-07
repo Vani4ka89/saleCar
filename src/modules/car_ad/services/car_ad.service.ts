@@ -263,8 +263,8 @@ export class CarAdService {
         dailyViews,
         weeklyViews,
         monthlyViews,
-        averagePrice: Math.round(averagePrice),
-        averageRegionPrice: Math.round(averageRegionPrice),
+        averagePrice,
+        averageRegionPrice,
         accType: userData.accountType,
       };
 
